@@ -24,4 +24,6 @@ $$
 > $w$ has $p$ and $q$ as periods and $\left| w \right| \geqslant p+q - gdc(p,q)$, then $gdc(p,q)$ is a period of $w$.
 
 ## Project Structure
-*   `proof/` : Contains the formal proof in Rocq (`.v` files).
+-   `proof/` : Contains the formal proof in Rocq (`.v` files).
+-   [Mathematical theory](./theory.md) : Mathematical proof of the Commutation Lemma.
+-   [Rocq Implementation](./docs/rocq_details.md) : Technical explanation of the formal proof and tactics used.
