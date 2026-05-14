@@ -27,3 +27,8 @@ $$
 -   `proof/` : Contains the formal proof in Rocq (`.v` files).
 -   [Mathematical theory](./theory.md) : Mathematical proof of the Commutation Lemma.
 -   [Rocq Implementation](./docs/rocq_details.md) : Technical explanation of the formal proof and tactics used.
+
+> [!IMPORTANT]
+> This is a supervised project; the outline of the main proof, along with several key
+> lemmas, were provided by our instructor. Therefore, all provided materials will be
+> explicitly credited. See [Rocq Implementation](./docs/rocq_details.md) for more details.
