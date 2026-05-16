@@ -1,6 +1,6 @@
 # Mathematical proof of the Commutation Lemma
 
-This proof will be carried out by induction on the maximum sum of the total lengths of the words.
+This proof will be carried out by induction on the total sum of lengths of the words.
 
 Let $\Sigma$ be a finite alphabet. Let's prove the following statement by induction on $k$:
 
