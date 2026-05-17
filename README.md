@@ -1,4 +1,4 @@
-# Proof of the commutation lemma in Rocq
+# Proof of the Commutation Lemma in Rocq
 
 ## Introduction
 The purpose of this project is to prove the Commutation Lemma in word theory, which is a corollary of the Fine-Wilf theorem. This lemma states that if two words over a finite alphabet commute, then they share a common root. Formally:
