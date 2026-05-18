@@ -1,3 +1,5 @@
+(* Still refining and translating the code. *)
+
 Section Words.
 
 Inductive lettre : Type :=
