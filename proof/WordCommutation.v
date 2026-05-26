@@ -187,18 +187,6 @@ Proof.
   intros. apply cases_int.
 Qed.
 
-Lemma puiss_1 :
-  forall (u : word), u = puiss 1 u. 
-Proof.
-  intro. simpl. apply conc_nil_l.
-Qed.
-
-Lemma conc_idem : 
-  forall u v v' : word, v=v' -> conc u v = conc u v'.
-Proof.
-  intros. subst. reflexivity.
-Qed.
-
 Lemma conc_egal_2 :
   forall u v v' : word, conc u v = conc u v' -> v=v'.
 Proof.
