@@ -18,8 +18,10 @@ match u with
 | cons l u => cons l (conc u v)
 end.
 
+Notation "u ++ v" := (conc u v).
+
 Lemma conc_nil_l :
-  forall (u : word), u = conc u epsilon.
+  forall (u : word), u = u ++ epsilon.
 Proof.
   intro. induction u.
   * simpl. reflexivity.
@@ -27,7 +29,7 @@ Proof.
 Qed.
 
 Lemma conc_assoc :
-  forall (u v w : word), conc u (conc v w) = conc (conc u v) w.
+  forall (u v w : word), u ++ (v ++ w) = (u ++ v) ++ w.
 Proof.
   intros. induction u.
   * simpl. reflexivity.
@@ -40,10 +42,10 @@ match u with
 | cons l u => 1 + long u
 end.
 
-Fixpoint puiss (n : nat) (u : word) : word :=
+Fixpoint pow (n : nat) (u : word) : word :=
 match n with
 | 0 => epsilon
-| S n => conc u (puiss n u)
+| S n => conc u (pow n u)
 end.
 
 Lemma long_0 :
@@ -195,21 +197,21 @@ Proof.
   - intros. simpl in H. injection H. intro. apply IHu in H0. assumption.
 Qed.
 
-Lemma conc_puiss1 : 
-  forall (n m : nat) (u : word), conc (puiss n u) (puiss m u) = puiss (n+m) u.
+Lemma conc_pow1 : 
+  forall (n m : nat) (u : word), conc (pow n u) (pow m u) = pow (n+m) u.
 Proof.
   intros. induction n. 
   * simpl. reflexivity.
   * simpl. rewrite <- conc_assoc. rewrite IHn. reflexivity.
 Qed.
 
-Lemma conc_puiss :
+Lemma conc_pow :
   forall (n m : nat) (v x w : word), 
-    (v = puiss n w /\ x = puiss m w) -> conc v x = puiss (n+m) w.
+    (v = pow n w /\ x = pow m w) -> conc v x = pow (n+m) w.
 Proof.
   intro n. destruct n.
   - intros. destruct H. simpl in H. rewrite H. simpl. assumption.
-  - intros. destruct H. rewrite H0. rewrite H. apply conc_puiss1.
+  - intros. destruct H. rewrite H0. rewrite H. apply conc_pow1.
 Qed.
 
 Lemma empty_or_larger :
@@ -306,7 +308,7 @@ Qed.
 
 Lemma fine_wilf_aux :
   forall (k: nat) (u v : word), ((long u + long v <= k) /\ conc u v = conc v u) -> 
-  exists (w : word) (n m : nat), u = (puiss m w) /\ v = (puiss n w).
+  exists (w : word) (n m : nat), u = (pow m w) /\ v = (pow n w).
 Proof.
   intro k. induction k.
   - intros. destruct H. inversion H. exists v , 0, 0. simpl. apply zero_split in H2. destruct H2.
@@ -323,7 +325,7 @@ Proof.
         rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (long u + long v <= S k /\ long u' < long u).
         split; assumption. specialize (remove_succ_keep_o_n (long u) (long v) (long u') k H6). intro.
         assert (long u' + long v <= k /\ conc u' v = conc v u'). split; assumption. apply IHk in H8.
-        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_puiss1 in H5.
+        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow1 in H5.
         exists w, n, (n + m). split; assumption.
     + intros. assert (u=epsilon \/ long u>0). apply empty_or_larger. case H0.
       * intro. exists v, 1, 0. simpl. split. assumption. rewrite <- conc_nil_l. reflexivity.
@@ -333,16 +335,16 @@ Proof.
         rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (long u + long v <= S k /\ long v' < long v).
         split; assumption. specialize (remove_succ_keep_m_o (long u) (long v) (long v') k H6). intro.
         assert (long u + long v' <= k /\ conc u v' = conc v' u). split; assumption. apply IHk in H8.
-        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_puiss1 in H5.
+        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow1 in H5.
         exists w, (m + n), m. split; assumption.
 Qed.
 
 Lemma fine_wilf :
   forall (u v : word), conc u v = conc v u -> 
-  exists (w : word) (n m : nat), u = (puiss m w) /\ v = (puiss n w).
+  exists (w : word) (n m : nat), u = (pow m w) /\ v = (pow n w).
 Proof.
   intros. assert (forall k, ((long u + long v <= k) /\ conc u v = conc v u) -> 
-  exists (w : word) (n m : nat), u = (puiss m w) /\ v = (puiss n w)). intro k. apply fine_wilf_aux.
+  exists (w : word) (n m : nat), u = (pow m w) /\ v = (pow n w)). intro k. apply fine_wilf_aux.
   specialize (H0 (long u + long v)). assert (long u + long v <= long u + long v). apply le_n.
   assert (long u + long v <= long u + long v /\ conc u v = conc v u). split; assumption. apply H0 in H2.
   destruct H2 as [w [n [m H_egalites]]]. exists w, n, m. assumption.
