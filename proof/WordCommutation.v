@@ -12,13 +12,17 @@ Inductive word : Type :=
 | epsilon : word
 | cons :letter -> word -> word.
 
+Declare Scope word_scope.
+Bind Scope word_scope with word.
+Open Scope word_scope.
+
 Fixpoint conc (u v : word) : word :=
 match u with
 | epsilon => v
 | cons l u => cons l (conc u v)
 end.
 
-Notation "u ++ v" := (conc u v).
+Notation "u ++ v" := (conc u v) : word_scope.
 
 Lemma conc_nil_l :
   forall (u : word), u = u ++ epsilon.
@@ -36,20 +40,24 @@ Proof.
   * simpl. rewrite IHu. reflexivity.
 Qed.
 
-Fixpoint long (u : word) : nat :=
+Fixpoint len (u : word) : nat :=
 match u with
 | epsilon => 0
-| cons l u => 1 + long u
+| cons l u' => 1 + len u'
 end.
+
+Notation "| u |" := (len u) (at level 10) : word_scope.
 
 Fixpoint pow (n : nat) (u : word) : word :=
 match n with
 | 0 => epsilon
-| S n => conc u (pow n u)
+| S n' => u ++ (pow n' u)
 end.
 
-Lemma long_0 :
-  forall (u : word), long u = 0 -> u = epsilon.
+Notation "u ^ n" := (pow n u) : word_scope.
+
+Lemma len_0 :
+  forall (u : word), |u| = 0 -> u = epsilon.
 Proof.
   intro. induction u.
   * intro. reflexivity.
@@ -66,7 +74,7 @@ match k with
 end.
 
 Lemma pref_first_word :
-  forall (u v : word),  prefixe (long u) (conc u v) = u.
+  forall (u v : word),  prefixe (len u) (u ++ v) = u.
 Proof.
   intros. induction u.
   - simpl. reflexivity.
@@ -139,8 +147,10 @@ End Arithmetics.
 
 Section Fine_Wilf.
 
+Notation "u ++ v" := (conc u v).
+
 Lemma pref_inside_first :
-  forall (k : nat) (u v : word), k<=(long u) -> prefixe k (conc u v) = prefixe k u.
+  forall (k : nat) (u v : word), k<=(len u) -> prefixe k (u ++ v) = prefixe k u.
 Proof.
   intro k. induction k.
   * intros. simpl. reflexivity.
@@ -151,10 +161,10 @@ Proof.
 Qed.
 
 Lemma case_egal11 : 
-  forall (u v w1 w2 : word), long u = long v -> conc u w1 = conc v w2 -> u = v.
+  forall (u v w1 w2 : word), len u = len v -> u ++ w1 = v ++ w2 -> u = v.
 Proof.
   intro u. induction u.
-  - intros. simpl in H. symmetry in H. apply long_0 in H. symmetry. assumption.
+  - intros. simpl in H. symmetry in H. apply len_0 in H. symmetry. assumption.
   - intro v. destruct v. 
     + intros. simpl in H. inversion H.
     + intros. simpl in H. injection H. intro. simpl in H0. injection H0. intros. symmetry in H3.
@@ -162,7 +172,7 @@ Proof.
 Qed.
 
 Lemma case_egal1 :
-forall (u v : word) (l : letter), long u = long v -> conc u (cons l v) = conc v (cons l u) -> conc u v = conc v u.
+forall (u v : word) (l : letter), len u = len v -> u ++ (cons l v) = v ++ (cons l u) -> u++v = v++u.
 Proof.
   intros. assert (u=v).
   apply case_egal11 with (w1 := cons l v) (w2 := cons l u). assumption. assumption.
@@ -170,27 +180,27 @@ Proof.
 Qed.
 
 Lemma case_egal :
-  forall (u v : word), (long(u)=long(v) /\ conc u v = conc v u) -> u=v.
+  forall (u v : word), (len(u)=len(v) /\ u++v = v++u) -> u=v.
 Proof.
   intro u. induction u.
-   - intros. destruct H. simpl in H0. simpl in H. symmetry in H. apply long_0 in H. symmetry. assumption.
+   - intros. destruct H. simpl in H0. simpl in H. symmetry in H. apply len_0 in H. symmetry. assumption.
    - intros. destruct H. induction v.
      + simpl in H. inversion H.
      + simpl in H. apply eq_add_S in H. simpl in H0. injection H0. intros. symmetry in H2.
-        subst. assert (long u = long v -> conc u (cons l v) = conc v (cons l u)). 
+        subst. assert (len u = len v -> u ++ (cons l v) = v ++ (cons l u)). 
         * intro. assumption.
-        * apply case_egal1 in H2. f_equal. assert (long(u)=long(v) /\ conc u v = conc v u). split. assumption. assumption.
+        * apply case_egal1 in H2. f_equal. assert (len(u)=len(v) /\ u++v = v++u). split. assumption. assumption.
             specialize (IHu v H3). subst. reflexivity. assumption. assumption.
 Qed.
 
 Lemma three_cases :
-  forall u v : word, long u = long v \/ long u > long v \/ long u < long v.
+  forall u v : word, len u = len v \/ len u > len v \/ len u < len v.
 Proof.
   intros. apply cases_int.
 Qed.
 
 Lemma conc_egal_2 :
-  forall u v v' : word, conc u v = conc u v' -> v=v'.
+  forall u v v' : word, u++v = u++v' -> v=v'.
 Proof.
   intro u. induction u.
   - intros. simpl in H. assumption.
@@ -198,7 +208,7 @@ Proof.
 Qed.
 
 Lemma conc_pow1 : 
-  forall (n m : nat) (u : word), conc (pow n u) (pow m u) = pow (n+m) u.
+  forall (n m : nat) (u : word), (pow n u) ++ (pow m u) = pow (n+m) u.
 Proof.
   intros. induction n. 
   * simpl. reflexivity.
@@ -207,7 +217,7 @@ Qed.
 
 Lemma conc_pow :
   forall (n m : nat) (v x w : word), 
-    (v = pow n w /\ x = pow m w) -> conc v x = pow (n+m) w.
+    (v = pow n w /\ x = pow m w) -> v++x = pow (n+m) w.
 Proof.
   intro n. destruct n.
   - intros. destruct H. simpl in H. rewrite H. simpl. assumption.
@@ -215,7 +225,7 @@ Proof.
 Qed.
 
 Lemma empty_or_larger :
-  forall v : word, v=epsilon \/ long v>0.
+  forall v : word, v=epsilon \/ len v>0.
 Proof.
   intro v. destruct v.
   - left. reflexivity.
@@ -229,17 +239,17 @@ Proof.
 Qed.
 
 Lemma pref_cut :
-  forall v u :word, long u > long v /\ long v > 0 /\ prefixe (long v) u = v -> 
-    exists u' : word, long u' < long u /\ u = conc v u'.
+  forall v u :word, len u > len v /\ len v > 0 /\ prefixe (len v) u = v -> 
+    exists u' : word, len u' < len u /\ u = v++u'.
 Proof.
   intro. induction v.
   - intros. destruct H. destruct H0. inversion H0.
   - intro u. destruct u. 
     + intros. destruct H. simpl in H. inversion H.
-    + intros. destruct H. destruct H0. inversion H1. subst. rewrite H4. assert (v=epsilon \/ long v>0).
+    + intros. destruct H. destruct H0. inversion H1. subst. rewrite H4. assert (v=epsilon \/ len v>0).
       apply empty_or_larger. case H2. 
       * intro. rewrite H3. simpl. exists u. split. apply succ_pos_strict. reflexivity.
-      * intro. simpl. assert (long u > long v /\ long v > 0 /\ prefixe (long v) u = v). split.
+      * intro. simpl. assert (len u > len v /\ len v > 0 /\ prefixe (len v) u = v). split.
         simpl in H. apply sup_succ_strict in H. assumption. split. assumption. assumption.
         specialize (IHv u H5). destruct IHv as [x H6]. exists x. destruct H6. apply lt_S in H6.
         split. assumption. f_equal. assumption.
@@ -307,46 +317,46 @@ Proof.
 Qed.
 
 Lemma fine_wilf_aux :
-  forall (k: nat) (u v : word), ((long u + long v <= k) /\ conc u v = conc v u) -> 
+  forall (k: nat) (u v : word), ((len u + len v <= k) /\ u++v = v++u) -> 
   exists (w : word) (n m : nat), u = (pow m w) /\ v = (pow n w).
 Proof.
   intro k. induction k.
   - intros. destruct H. inversion H. exists v , 0, 0. simpl. apply zero_split in H2. destruct H2.
-    apply long_0 in H1, H2. split. assumption. assumption.
-  - intros u v. assert (long u = long v \/ long u > long v \/ long u < long v). apply three_cases. destruct H as [HA | [HB | HC]].
-    + intros. destruct H. assert (long u = long v /\ conc u v = conc v u). split. assumption.
+    apply len_0 in H1, H2. split. assumption. assumption.
+  - intros u v. assert (len u = len v \/ len u > len v \/ len u < len v). apply three_cases. destruct H as [HA | [HB | HC]].
+    + intros. destruct H. assert (len u = len v /\ u++v = v++u). split. assumption.
       assumption. apply case_egal in H1. exists u, 1, 1. split. simpl. rewrite <- conc_nil_l. reflexivity. simpl.
       rewrite <- conc_nil_l. symmetry. assumption.
-    + intros. assert (v=epsilon \/ long v>0). apply empty_or_larger. case H0.
+    + intros. assert (v=epsilon \/ len v>0). apply empty_or_larger. case H0.
       * intro. exists u, 0, 1. simpl. split. rewrite <- conc_nil_l. reflexivity. assumption.
-      * intro. destruct H. apply gt_to_le in HB as HB_2. specialize (pref_inside_first (long v) u v HB_2). intro. rewrite H2 in H3.
-        rewrite pref_first_word in H3. symmetry in H3. assert (long u > long v /\ long v > 0 /\ prefixe (long v) u = v).
+      * intro. destruct H. apply gt_to_le in HB as HB_2. specialize (pref_inside_first (len v) u v HB_2). intro. rewrite H2 in H3.
+        rewrite pref_first_word in H3. symmetry in H3. assert (len u > len v /\ len v > 0 /\ prefixe (len v) u = v).
         repeat split; assumption. apply pref_cut in H4. destruct H4 as [u' H4]. destruct H4.
-        rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (long u + long v <= S k /\ long u' < long u).
-        split; assumption. specialize (remove_succ_keep_o_n (long u) (long v) (long u') k H6). intro.
-        assert (long u' + long v <= k /\ conc u' v = conc v u'). split; assumption. apply IHk in H8.
+        rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (len u + len v <= S k /\ len u' < len u).
+        split; assumption. specialize (remove_succ_keep_o_n (len u) (len v) (len u') k H6). intro.
+        assert (len u' + len v <= k /\ u'++v = v++u'). split; assumption. apply IHk in H8.
         destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow1 in H5.
         exists w, n, (n + m). split; assumption.
-    + intros. assert (u=epsilon \/ long u>0). apply empty_or_larger. case H0.
+    + intros. assert (u=epsilon \/ len u>0). apply empty_or_larger. case H0.
       * intro. exists v, 1, 0. simpl. split. assumption. rewrite <- conc_nil_l. reflexivity.
-      * intro. destruct H. apply gt_to_le in HC as HC_2. specialize (pref_inside_first (long u) v u HC_2). intro. rewrite <- H2 in H3.
-        rewrite pref_first_word in H3. symmetry in H3. assert (long v > long u /\ long u > 0 /\ prefixe (long u) v = u).
+      * intro. destruct H. apply gt_to_le in HC as HC_2. specialize (pref_inside_first (len u) v u HC_2). intro. rewrite <- H2 in H3.
+        rewrite pref_first_word in H3. symmetry in H3. assert (len v > len u /\ len u > 0 /\ prefixe (len u) v = u).
         repeat split; assumption. apply pref_cut in H4. destruct H4 as [v' H4]. destruct H4.
-        rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (long u + long v <= S k /\ long v' < long v).
-        split; assumption. specialize (remove_succ_keep_m_o (long u) (long v) (long v') k H6). intro.
-        assert (long u + long v' <= k /\ conc u v' = conc v' u). split; assumption. apply IHk in H8.
+        rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (len u + len v <= S k /\ len v' < len v).
+        split; assumption. specialize (remove_succ_keep_m_o (len u) (len v) (len v') k H6). intro.
+        assert (len u + len v' <= k /\ u++v' = v'++u). split; assumption. apply IHk in H8.
         destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow1 in H5.
         exists w, (m + n), m. split; assumption.
 Qed.
 
 Lemma fine_wilf :
-  forall (u v : word), conc u v = conc v u -> 
+  forall (u v : word), u++v = v++u -> 
   exists (w : word) (n m : nat), u = (pow m w) /\ v = (pow n w).
 Proof.
-  intros. assert (forall k, ((long u + long v <= k) /\ conc u v = conc v u) -> 
+  intros. assert (forall k, ((len u + len v <= k) /\ u++v = v++u) -> 
   exists (w : word) (n m : nat), u = (pow m w) /\ v = (pow n w)). intro k. apply fine_wilf_aux.
-  specialize (H0 (long u + long v)). assert (long u + long v <= long u + long v). apply le_n.
-  assert (long u + long v <= long u + long v /\ conc u v = conc v u). split; assumption. apply H0 in H2.
+  specialize (H0 (len u + len v)). assert (len u + len v <= len u + len v). apply le_n.
+  assert (len u + len v <= len u + len v /\ u++v = v++u). split; assumption. apply H0 in H2.
   destruct H2 as [w [n [m H_egalites]]]. exists w, n, m. assumption.
 Qed.
 
