@@ -232,7 +232,7 @@ Proof.
   - right. simpl. apply int_strict_positive.
 Qed.
 
-Lemma pref_cut1 :
+Lemma lt_S :
   forall n m, n < m -> n < S m.
 Proof. 
   intros n m. intro. unfold lt in H. unfold lt. apply le_S in H. assumption.
@@ -251,11 +251,11 @@ Proof.
       * intro. rewrite H3. simpl. exists u. split. apply succ_pos_strict. reflexivity.
       * intro. simpl. assert (long u > long v /\ long v > 0 /\ prefixe (long v) u = v). split.
         simpl in H. apply sup_succ_strict in H. assumption. split. assumption. assumption.
-        specialize (IHv u H5). destruct IHv as [x H6]. exists x. destruct H6. apply pref_cut1 in H6.
+        specialize (IHv u H5). destruct IHv as [x H6]. exists x. destruct H6. apply lt_S in H6.
         split. assumption. f_equal. assumption.
 Qed.
 
-Lemma fine_wilf_aux1 :
+Lemma zero_split :
   forall m n, m+n=0 -> m=0 /\ n=0.
 Proof. 
   intros m n. destruct m.
@@ -263,19 +263,19 @@ Proof.
   - intro. simpl in H. inversion H.
 Qed.
 
-Lemma fine_wilf_aux2 :
+Lemma gt_to_le :
   forall m n, n > m -> m <= n.
 Proof. 
   intros. unfold gt in H. unfold lt in H. apply le_S_n. apply le_S. assumption.
 Qed.
 
-Lemma fine_wilf_aux311 :
+Lemma lt_add_succ_both_sides :
   forall m n, m < n -> S m < S n.
 Proof.
   intros m n H. unfold lt in H. unfold lt. apply le_n_S. assumption.
 Qed.
 
-Lemma fine_wilf_aux312 :
+Lemma add_zero_idemp_r  :
   forall m, m + 0 = m.
 Proof.
   intro m. induction m.
@@ -283,16 +283,16 @@ Proof.
   - apply eq_S in IHm. rewrite plus_Sn_m. assumption.
 Qed.
 
-Lemma fine_wilf_aux31 :
+Lemma lt_add_n_both_sides :
   forall o m n, o < m -> o+n < m+n.
 Proof.
   intros o m n.
   induction n.
-  - intro. simpl. rewrite fine_wilf_aux312. rewrite fine_wilf_aux312. assumption.
-  - intro. rewrite <- plus_n_Sm. rewrite <- plus_n_Sm. apply fine_wilf_aux311. apply IHn. assumption.
+  - intro. simpl. rewrite add_zero_idemp_r . rewrite add_zero_idemp_r . assumption.
+  - intro. rewrite <- plus_n_Sm. rewrite <- plus_n_Sm. apply lt_add_succ_both_sides. apply IHn. assumption.
 Qed.
 
-Lemma fine_wilf_aux32 :
+Lemma lt_le_trans  :
   forall a b c, a < b /\ b <= c -> a < c.
 Proof.
   unfold lt. intros a b c. intro. destruct H. induction H0.
@@ -300,19 +300,19 @@ Proof.
   - apply le_S. assumption.
 Qed.
 
-Lemma fine_wilf_aux3 :
+Lemma remove_succ_keep_o_n :
   forall m n o k, m + n <= S k /\ o < m -> o + n <= k.
 Proof. 
-  intros m n o k H. destruct H. apply fine_wilf_aux31 with (o:=o) (m:=m) (n:=n) in H0.
-  assert (o + n < m + n /\ m + n <= S k). split; assumption. apply fine_wilf_aux32 in H1. unfold lt in H1.
+  intros m n o k H. destruct H. apply lt_add_n_both_sides with (o:=o) (m:=m) (n:=n) in H0.
+  assert (o + n < m + n /\ m + n <= S k). split; assumption. apply lt_le_trans  in H1. unfold lt in H1.
   apply le_S_n in H1. assumption.
 Qed.
 
-Lemma fine_wilf_aux4 :
+Lemma remove_succ_keep_m_o :
   forall m n o k, m + n <= S k /\ o < n -> m + o <= k.
 Proof. 
-  intros m n o k H. destruct H. assert (o + m < n + m). apply fine_wilf_aux31. assumption.
-  replace (m+n) with (n+m) in H. assert (o + m < n + m /\ n + m <= S k). split; assumption. apply fine_wilf_aux32 in H2.
+  intros m n o k H. destruct H. assert (o + m < n + m). apply lt_add_n_both_sides. assumption.
+  replace (m+n) with (n+m) in H. assert (o + m < n + m /\ n + m <= S k). split; assumption. apply lt_le_trans  in H2.
   apply le_S_n in H2. replace (m+o) with (o+m). assumption. apply plus_commut. apply plus_commut.
 Qed.
 
@@ -321,7 +321,7 @@ Lemma fine_wilf_aux :
   exists (w : word) (n m : nat), u = (puiss m w) /\ v = (puiss n w).
 Proof.
   intro k. induction k.
-  - intros. destruct H. inversion H. exists v , 0, 0. simpl. apply fine_wilf_aux1 in H2. destruct H2.
+  - intros. destruct H. inversion H. exists v , 0, 0. simpl. apply zero_split in H2. destruct H2.
     apply long_0 in H1, H2. split. assumption. assumption.
   - intros u v. assert (long u = long v \/ long u > long v \/ long u < long v). apply three_cases. destruct H as [HA | [HB | HC]].
     + intros. destruct H. assert (long u = long v /\ conc u v = conc v u). split. assumption.
@@ -329,21 +329,21 @@ Proof.
       rewrite <- conc_nil_l. symmetry. assumption.
     + intros. assert (v=epsilon \/ long v>0). apply empty_or_larger. case H0.
       * intro. exists u, 0, 1. simpl. split. rewrite <- conc_nil_l. reflexivity. assumption.
-      * intro. destruct H. apply fine_wilf_aux2 in HB as HB_2. specialize (pref_inside_first (long v) u v HB_2). intro. rewrite H2 in H3.
+      * intro. destruct H. apply gt_to_le in HB as HB_2. specialize (pref_inside_first (long v) u v HB_2). intro. rewrite H2 in H3.
         rewrite pref_first_word in H3. symmetry in H3. assert (long u > long v /\ long v > 0 /\ prefixe (long v) u = v).
         repeat split; assumption. apply pref_cut in H4. destruct H4 as [u' H4]. destruct H4.
         rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (long u + long v <= S k /\ long u' < long u).
-        split; assumption. specialize (fine_wilf_aux3 (long u) (long v) (long u') k H6). intro.
+        split; assumption. specialize (remove_succ_keep_o_n (long u) (long v) (long u') k H6). intro.
         assert (long u' + long v <= k /\ conc u' v = conc v u'). split; assumption. apply IHk in H8.
         destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_puiss1 in H5.
         exists w, n, (n + m). split; assumption.
     + intros. assert (u=epsilon \/ long u>0). apply empty_or_larger. case H0.
       * intro. exists v, 1, 0. simpl. split. assumption. rewrite <- conc_nil_l. reflexivity.
-      * intro. destruct H. apply fine_wilf_aux2 in HC as HC_2. specialize (pref_inside_first (long u) v u HC_2). intro. rewrite <- H2 in H3.
+      * intro. destruct H. apply gt_to_le in HC as HC_2. specialize (pref_inside_first (long u) v u HC_2). intro. rewrite <- H2 in H3.
         rewrite pref_first_word in H3. symmetry in H3. assert (long v > long u /\ long u > 0 /\ prefixe (long u) v = u).
         repeat split; assumption. apply pref_cut in H4. destruct H4 as [v' H4]. destruct H4.
         rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (long u + long v <= S k /\ long v' < long v).
-        split; assumption. specialize (fine_wilf_aux4 (long u) (long v) (long v') k H6). intro.
+        split; assumption. specialize (remove_succ_keep_m_o (long u) (long v) (long v') k H6). intro.
         assert (long u + long v' <= k /\ conc u v' = conc v' u). split; assumption. apply IHk in H8.
         destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_puiss1 in H5.
         exists w, (m + n), m. split; assumption.
