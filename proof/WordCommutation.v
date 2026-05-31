@@ -1,5 +1,3 @@
-(* Still refining and translating the code. *)
-
 Inductive letter : Type :=
 | a : letter
 | b : letter
