@@ -1,38 +1,38 @@
 Inductive letter : Type :=
-| a : letter
-| b : letter
-| c : letter.
+  | a : letter
+  | b : letter
+  | c : letter.
 
 Inductive word : Type :=
-| epsilon : word
-| cons :letter -> word -> word.
+  | epsilon : word
+  | cons : letter -> word -> word.
 
 Fixpoint conc (u v : word) : word :=
-match u with
-| epsilon => v
-| cons l u => cons l (conc u v)
-end.
+  match u with
+  | epsilon => v
+  | cons l u => cons l (conc u v)
+  end.
 
 Fixpoint len (u : word) : nat :=
-match u with
-| epsilon => 0
-| cons l u' => 1 + (len u')
-end.
+  match u with
+  | epsilon => 0
+  | cons l u' => 1 + (len u')
+  end.
 
 Fixpoint pow (n : nat) (u : word) : word :=
-match n with
-| 0 => epsilon
-| S n' => conc u (pow n' u)
-end.
+  match n with
+  | 0 => epsilon
+  | S n' => conc u (pow n' u)
+  end.
 
 Fixpoint prefixe (k : nat) (u : word) : word :=
-match k with
-|0 => epsilon
-|S k' => match u with
-        |epsilon => epsilon
-        |cons l u' => cons l (prefixe k' u')
-        end
-end.
+  match k with
+  |0 => epsilon
+  |S k' => match u with
+          |epsilon => epsilon
+          |cons l u' => cons l (prefixe k' u')
+          end
+  end.
 
 Declare Scope word_scope.
 Bind Scope word_scope with word.
@@ -44,68 +44,126 @@ Notation "u ^ n" := (pow n u) : word_scope.
 
 Section Combinatorics.
 
-Lemma conc_nil_l :
-  forall (u : word), u = u ++ epsilon.
+Lemma conc_nil_l : forall (u : word), u = u ++ epsilon.
 Proof.
-  intro. induction u.
-  * simpl. reflexivity.
-  * simpl. rewrite <- IHu. reflexivity.
+  intro u. induction u as [| x u' IHu'].
+  - reflexivity.
+  - simpl. rewrite <- IHu'. reflexivity.
 Qed.
 
-Lemma conc_assoc :
-  forall (u v w : word), u ++ (v ++ w) = (u ++ v) ++ w.
+Lemma conc_assoc : forall (u v w : word),
+  u ++ (v ++ w) = (u ++ v) ++ w.
 Proof.
-  intros. induction u.
-  * simpl. reflexivity.
-  * simpl. rewrite IHu. reflexivity.
+  intros u v w. induction u as [| x u' IHu'].
+  - reflexivity.
+  - simpl. rewrite -> IHu'. reflexivity.
 Qed.
 
-Lemma len_0 :
-  forall (u : word), |u| = 0 -> u = epsilon.
+Lemma len_0 : forall (u : word), |u| = 0 -> u = epsilon.
 Proof.
-  intro. induction u.
-  * intro. reflexivity.
-  * intro. simpl in H. discriminate.
+  intro u. destruct u as [| x u'] eqn:E.
+  - intro. reflexivity.
+  - intro. simpl in H. discriminate.
 Qed.
 
-Lemma pref_first_word :
-  forall (u v : word),  prefixe (|u|) (u ++ v) = u.
+Lemma pref_first_word : forall (u v : word),
+  prefixe (|u|) (u ++ v) = u.
 Proof.
-  intros. induction u.
-  - simpl. reflexivity.
-  - simpl. rewrite IHu. reflexivity.
+  intros u v. induction u as [| x u' IHu'].
+  - reflexivity.
+  - simpl. rewrite -> IHu'. reflexivity.
 Qed.
 
 End Combinatorics.
 
 Section Arithmetics.
 
-Lemma plus_commut :
-  forall m n : nat, m+n=n+m.
+Lemma add_0_r  : forall (n : nat), n + 0 = n.
+Proof.
+  intro n. induction n as [| n' IHn'].
+  - reflexivity.
+  - apply eq_S in IHn'. rewrite -> plus_Sn_m. exact IHn'.
+Qed.
+
+Lemma plus_comm : forall (m n : nat), m + n = n + m.
 Proof. 
-  intros m n. induction m.
+  intros m n. induction m as [| m' IHm'].
   - simpl. apply plus_n_O. 
-  - simpl. rewrite <- plus_n_Sm. rewrite IHm. reflexivity.
+  - simpl. rewrite <- plus_n_Sm. rewrite -> IHm'. reflexivity.
 Qed.
 
-Lemma int_strict_positive :
-  forall n : nat, S n > 0.
+Lemma zero_split : forall (m n : nat), m + n = 0 -> m = 0 /\ n = 0.
+Proof. 
+  intros m n. destruct m as [| m'].
+  - intro H. split. reflexivity. exact H.
+  - intro H. simpl in H. inversion H.
+Qed.
+
+Lemma gt_to_le : forall (m n : nat), n > m -> m <= n.
+Proof. 
+  intros m n H. unfold gt in H. unfold lt in H. apply le_S_n.
+  apply le_S. exact H.
+Qed.
+
+Lemma int_strict_positive : forall (n : nat), S n > 0.
 Proof.
-  intro n. unfold gt. unfold lt. induction n.
+  intro n. unfold gt. unfold lt. induction n as [| n'].
   - apply le_n.
-  - apply le_S in IHn. assumption.
+  - apply le_S in IHn'. exact IHn'.
 Qed.
 
-Lemma succ_pos_strict :
-  forall n : nat, n < S n.
+Lemma succ_pos_strict : forall (n : nat), n < S n.
+Proof. intro n. unfold lt. apply le_n. Qed.
+
+Lemma sup_succ_strict : forall (m n : nat), S m > S n -> m > n.
 Proof.
-  intro n. unfold lt. apply le_n.
+  intros m n H. unfold gt. unfold lt. unfold gt in H. unfold lt in H.
+  apply le_S_n in H. exact H.
 Qed.
 
-Lemma sup_succ_strict :
-  forall m n : nat, S m > S n -> m > n.
+Lemma lt_S : forall (n m : nat), n < m -> n < S m.
+Proof. 
+  intros n m. intro. unfold lt in H. unfold lt. apply le_S in H.
+  exact H.
+Qed.
+
+Lemma lt_add_succ_both_sides :
+  forall m n, m < n -> S m < S n.
 Proof.
-  intros m n H. unfold gt. unfold lt. unfold gt in H. unfold lt in H. apply le_S_n in H. assumption.
+  intros m n H. unfold lt in H. unfold lt. apply le_n_S. assumption.
+Qed.
+
+Lemma lt_add_n_both_sides :
+  forall o m n, o < m -> o+n < m+n.
+Proof.
+  intros o m n.
+  induction n.
+  - intro. simpl. rewrite add_0_r . rewrite add_0_r . assumption.
+  - intro. rewrite <- plus_n_Sm. rewrite <- plus_n_Sm. apply lt_add_succ_both_sides. apply IHn. assumption.
+Qed.
+
+Lemma lt_le_trans  :
+  forall a b c, a < b /\ b <= c -> a < c.
+Proof.
+  unfold lt. intros a b c. intro. destruct H. induction H0.
+  - assumption.
+  - apply le_S. assumption.
+Qed.
+
+Lemma remove_succ_keep_o_n :
+  forall m n o k, m + n <= S k /\ o < m -> o + n <= k.
+Proof. 
+  intros m n o k H. destruct H. apply lt_add_n_both_sides with (o:=o) (m:=m) (n:=n) in H0.
+  assert (o + n < m + n /\ m + n <= S k). split; assumption. apply lt_le_trans  in H1. unfold lt in H1.
+  apply le_S_n in H1. assumption.
+Qed.
+
+Lemma remove_succ_keep_m_o :
+  forall m n o k, m + n <= S k /\ o < n -> m + o <= k.
+Proof. 
+  intros m n o k H. destruct H. assert (o + m < n + m). apply lt_add_n_both_sides. assumption.
+  replace (m+n) with (n+m) in H. assert (o + m < n + m /\ n + m <= S k). split; assumption. apply lt_le_trans  in H2.
+  apply le_S_n in H2. replace (m+o) with (o+m). assumption. apply plus_comm. apply plus_comm.
 Qed.
 
 Lemma le_disjunction :
@@ -136,73 +194,6 @@ Proof.
       apply H in H2. case H2.
       * intro. left. assumption.
       * intro. right. right. assumption.
-Qed.
-
-Lemma zero_split :
-  forall m n, m+n=0 -> m=0 /\ n=0.
-Proof. 
-  intros m n. destruct m.
-  - intros. split. reflexivity. assumption.
-  - intro. simpl in H. inversion H.
-Qed.
-
-Lemma gt_to_le :
-  forall m n, n > m -> m <= n.
-Proof. 
-  intros. unfold gt in H. unfold lt in H. apply le_S_n. apply le_S. assumption.
-Qed.
-
-Lemma lt_add_succ_both_sides :
-  forall m n, m < n -> S m < S n.
-Proof.
-  intros m n H. unfold lt in H. unfold lt. apply le_n_S. assumption.
-Qed.
-
-Lemma add_zero_idemp_r  :
-  forall m, m + 0 = m.
-Proof.
-  intro m. induction m.
-  - reflexivity.
-  - apply eq_S in IHm. rewrite plus_Sn_m. assumption.
-Qed.
-
-Lemma lt_add_n_both_sides :
-  forall o m n, o < m -> o+n < m+n.
-Proof.
-  intros o m n.
-  induction n.
-  - intro. simpl. rewrite add_zero_idemp_r . rewrite add_zero_idemp_r . assumption.
-  - intro. rewrite <- plus_n_Sm. rewrite <- plus_n_Sm. apply lt_add_succ_both_sides. apply IHn. assumption.
-Qed.
-
-Lemma lt_le_trans  :
-  forall a b c, a < b /\ b <= c -> a < c.
-Proof.
-  unfold lt. intros a b c. intro. destruct H. induction H0.
-  - assumption.
-  - apply le_S. assumption.
-Qed.
-
-Lemma remove_succ_keep_o_n :
-  forall m n o k, m + n <= S k /\ o < m -> o + n <= k.
-Proof. 
-  intros m n o k H. destruct H. apply lt_add_n_both_sides with (o:=o) (m:=m) (n:=n) in H0.
-  assert (o + n < m + n /\ m + n <= S k). split; assumption. apply lt_le_trans  in H1. unfold lt in H1.
-  apply le_S_n in H1. assumption.
-Qed.
-
-Lemma remove_succ_keep_m_o :
-  forall m n o k, m + n <= S k /\ o < n -> m + o <= k.
-Proof. 
-  intros m n o k H. destruct H. assert (o + m < n + m). apply lt_add_n_both_sides. assumption.
-  replace (m+n) with (n+m) in H. assert (o + m < n + m /\ n + m <= S k). split; assumption. apply lt_le_trans  in H2.
-  apply le_S_n in H2. replace (m+o) with (o+m). assumption. apply plus_commut. apply plus_commut.
-Qed.
-
-Lemma lt_S :
-  forall n m, n < m -> n < S m.
-Proof. 
-  intros n m. intro. unfold lt in H. unfold lt. apply le_S in H. assumption.
 Qed.
 
 End Arithmetics.
