@@ -188,25 +188,28 @@ Qed.
 
 Lemma cases_int : forall (m n : nat), m = n \/ m > n \/ m < n.
 Proof.
-  intros m n. induction m.
-  - destruct n.
+  intros m n. induction m as [| m' IHm'].
+  - destruct n as [| n'] eqn:E.
     + left. reflexivity.
-    + right. right. assert (S n > 0). apply int_strict_positive. unfold gt in H. assumption.
-  - destruct IHm as [H0 | [H1 | H2]].
-    + right. left. rewrite H0. unfold gt. apply succ_pos_strict.
-    + right. left. unfold gt. unfold lt. unfold gt in H1. unfold lt in H1. apply le_S in H1. assumption.
-    + unfold lt in H2. assert (S m <= n -> S m = n \/ S m < n). apply le_disjunction with (m := S m) (n := n).
-      apply H in H2. case H2.
-      * intro. left. assumption.
-      * intro. right. right. assumption.
+    + right. right. assert (S n' > 0) as H. apply int_strict_positive.
+      unfold gt in H. exact H.
+  - destruct IHm' as [H1 | [H2 | H3]].
+    + right. left. rewrite -> H1. unfold gt. apply succ_pos_strict.
+    + right. left. unfold gt. unfold lt. unfold gt in H2.
+      unfold lt in H2. apply le_S in H2. exact H2.
+    + unfold lt in H3. assert (S m' <= n -> S m' = n \/ S m' < n) as H.
+      apply le_disjunction with (m := S m') (n := n).
+      apply H in H3. case H3.
+      * intro H1. left. exact H1.
+      * intro H1. right. right. exact H1.
 Qed.
 
 End Arithmetics.
 
 Section Fine_Wilf.
 
-Lemma pref_inside_first :
-  forall (k : nat) (u v : word), k<=|u| -> prefixe k (u ++ v) = prefixe k u.
+Lemma pref_inside_first : forall (k : nat) (u v : word),
+  k<=|u| -> prefixe k (u ++ v) = prefixe k u.
 Proof.
   intro k. induction k.
   - intros. simpl. reflexivity.
