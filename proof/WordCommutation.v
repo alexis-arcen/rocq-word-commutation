@@ -63,8 +63,8 @@ Qed.
 Lemma len_0 : forall (u : word), |u| = 0 -> u = epsilon.
 Proof.
   intro u. destruct u as [| x u'] eqn:E.
-  - intro. reflexivity.
-  - intro. simpl in H. discriminate.
+  - intro H. reflexivity.
+  - intro H. simpl in H. discriminate.
 Qed.
 
 Lemma pref_first_word : forall (u v : word),
@@ -175,8 +175,8 @@ Proof.
   intro m. induction m as [| m' IHm'].
   - intro n. destruct n as [| n'].
     + intro H. left. reflexivity.
-    + intro H. right. assert (S n' > 0) as H1.
-      apply int_strict_positive. unfold gt in H1. exact H1.
+    + intro H. right. pose proof (int_strict_positive n') as H1.
+    unfold gt in H1. exact H1.
   - intro n. destruct n as [| n'].
     + intro H. inversion H.
     + intro H. specialize (IHm' n'). apply le_S_n in H.
@@ -191,7 +191,7 @@ Proof.
   intros m n. induction m as [| m' IHm'].
   - destruct n as [| n'] eqn:E.
     + left. reflexivity.
-    + right. right. assert (S n' > 0) as H. apply int_strict_positive.
+    + right. right. pose proof (int_strict_positive n') as H.
       unfold gt in H. exact H.
   - destruct IHm' as [H1 | [H2 | H3]].
     + right. left. rewrite -> H1. unfold gt. apply succ_pos_strict.
@@ -209,37 +209,40 @@ End Arithmetics.
 Section Fine_Wilf.
 
 Lemma pref_inside_first : forall (k : nat) (u v : word),
-  k<=|u| -> prefixe k (u ++ v) = prefixe k u.
+  k <= |u| -> prefixe k (u ++ v) = prefixe k u.
 Proof.
-  intro k. induction k.
-  - intros. simpl. reflexivity.
-  - intro u. intro v. induction u.
-    + intros. simpl in H. inversion H.
-    + intros. simpl in H. apply le_S_n in H. specialize (IHk u v H). 
-       simpl. rewrite IHk. reflexivity.
+  intro k. induction k as [| k' IHk'].
+  - intros u v H. reflexivity.
+  - intros u v. induction u as [| x u' IHu'].
+    + intro H. simpl in H. inversion H.
+    + intro H. simpl in H. apply le_S_n in H. specialize (IHk' u' v H).
+      simpl. rewrite IHk'. reflexivity.
 Qed.
 
-Lemma case_egal11 : 
-  forall (u v w1 w2 : word), |u| = |v| -> u ++ w1 = v ++ w2 -> u = v.
+Lemma case_egal1_generalized : forall (u v w1 w2 : word),
+  |u| = |v| -> u ++ w1 = v ++ w2 -> u = v.
 Proof.
-  intro u. induction u.
-  - intros. simpl in H. symmetry in H. apply len_0 in H. symmetry. assumption.
-  - intro v. destruct v. 
-    + intros. simpl in H. inversion H.
-    + intros. simpl in H. injection H. intro. simpl in H0. injection H0. intros. symmetry in H3.
-      subst. f_equal. apply IHu with (w1:=w1) (w2:=w2). assumption. assumption.
+  intro u. induction u as [| x1 u' IHu'].
+  - intros v w1 w2 H1 H2. simpl in H1. symmetry in H1.
+    apply len_0 in H1. symmetry. exact H1.
+  - intro v. destruct v as [| x2 v'] eqn:E.
+    + intros w1 w2 H1 H2. simpl in H1. inversion H1.
+    + intros w1 w2 H1 H2. simpl in H1. injection H2. intro H3.
+      simpl in H1. injection H1. intros H4 H5.
+      subst. f_equal. apply IHu' with (w1 := w1) (w2 := w2). exact H4.
+      exact H3.
 Qed.
 
-Lemma case_egal1 :
-forall (u v : word) (l : letter), |u| = |v| -> u ++ (cons l v) = v ++ (cons l u) -> u++v = v++u.
+Lemma case_egal1 : forall (u v : word) (x : letter),
+  |u| = |v| -> u ++ (x :: v) = v ++ (x :: u) -> u ++ v = v ++ u.
 Proof.
-  intros. assert (u = v).
-  apply case_egal11 with (w1 := cons l v) (w2 := cons l u). assumption. assumption.
-  rewrite H1. reflexivity.
+  intros u v x H1 H2.
+  pose proof (case_egal1_generalized u v (x :: v) ( x :: u)) as H3.
+  apply H3 in H1. replace u with v. reflexivity. exact H2.
 Qed.
 
-Lemma case_egal :
-  forall (u v : word), (|u|=|v| /\ u++v = v++u) -> u=v.
+Lemma case_egal : forall (u v : word),
+  (|u| = |v| /\ u ++ v = v ++ u) -> u = v.
 Proof.
   intro u. induction u.
    - intros. destruct H. simpl in H0. simpl in H. symmetry in H. apply len_0 in H. symmetry. assumption.
@@ -252,11 +255,9 @@ Proof.
             specialize (IHu v H3). subst. reflexivity. assumption. assumption.
 Qed.
 
-Lemma three_cases :
-  forall u v : word, |u| = |v| \/ |u| > |v| \/ |u| < |v|.
-Proof.
-  intros. apply cases_int.
-Qed.
+Lemma three_cases : forall (u v : word),
+  |u| = |v| \/ |u| > |v| \/ |u| < |v|.
+Proof. intros u v. apply cases_int. Qed.
 
 Lemma conc_egal_2 :
   forall u v v' : word, u++v = u++v' -> v=v'.
@@ -266,18 +267,17 @@ Proof.
   - intros. simpl in H. injection H. intro. apply IHu in H0. assumption.
 Qed.
 
-Lemma conc_pow1 : 
-  forall (n m : nat) (u : word), u^n ++ u^m = u^(n+m).
+Lemma conc_pow : forall (n m : nat) (u : word),
+  u^n ++ u^m = u^(n + m).
 Proof.
-  intros. induction n. 
-  - simpl. reflexivity.
-  - simpl. rewrite <- conc_assoc. rewrite IHn. reflexivity.
+  intros. induction n as [| n' IHn'].
+  - reflexivity.
+  - simpl. rewrite <- conc_assoc. rewrite IHn'. reflexivity.
 Qed.
 
-Lemma empty_or_larger :
-  forall v : word, v=epsilon \/ |v|>0.
+Lemma empty_or_larger : forall (v : word), v = epsilon \/ |v| > 0.
 Proof.
-  intro v. destruct v.
+  intro v. destruct v as [|x v'] eqn:E.
   - left. reflexivity.
   - right. simpl. apply int_strict_positive.
 Qed.
@@ -318,7 +318,7 @@ Proof.
         rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (|u| + |v| <= S k /\ |u'| < |u|).
         split; assumption. specialize (remove_S_keep_o_n (|u|) (|v|) (|u'|) k H6). intro.
         assert (|u'| + |v| <= k /\ u'++v = v++u'). split; assumption. apply IHk in H8.
-        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow1 in H5.
+        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow in H5.
         exists w, n, (n + m). split; assumption.
     + intros. assert (u=epsilon \/ |u|>0). apply empty_or_larger. case H0.
       * intro. exists v, 1, 0. simpl. split. assumption. rewrite <- conc_nil_l. reflexivity.
@@ -328,7 +328,7 @@ Proof.
         rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (|u| + |v| <= S k /\ |v'| < |v|).
         split; assumption. specialize (remove_S_keep_m_o (|u|) (|v|) (|v'|) k H6). intro.
         assert (|u| + |v'| <= k /\ u++v' = v'++u). split; assumption. apply IHk in H8.
-        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow1 in H5.
+        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow in H5.
         exists w, (m + n), m. split; assumption.
 Qed.
 
