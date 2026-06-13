@@ -26,12 +26,10 @@ Fixpoint pow (n : nat) (u : word) : word :=
   end.
 
 Fixpoint prefixe (k : nat) (u : word) : word :=
-  match k with
-  |0 => epsilon
-  |S k' => match u with
-           |epsilon => epsilon
-           |cons x u' => cons x (prefixe k' u')
-           end
+  match k, u with
+  | 0, _ => epsilon
+  | S k', epsilon => epsilon
+  | S k', cons x u' => cons x (prefixe k' u')
   end.
 
 Declare Scope word_scope.
@@ -215,8 +213,8 @@ Proof.
   - intros u v H. reflexivity.
   - intros u v. induction u as [| x u' IHu'].
     + intro H. simpl in H. inversion H.
-    + intro H. simpl in H. apply le_S_n in H. specialize (IHk' u' v H).
-      simpl. rewrite IHk'. reflexivity.
+    + intro H. simpl in H. apply le_S_n in H.
+      specialize (IHk' u' v H). simpl. rewrite IHk'. reflexivity.
 Qed.
 
 Lemma case_egal1_generalized : forall (u v w1 w2 : word),
@@ -229,8 +227,8 @@ Proof.
     + intros w1 w2 H1 H2. simpl in H1. inversion H1.
     + intros w1 w2 H1 H2. simpl in H1. injection H2. intro H3.
       simpl in H1. injection H1. intros H4 H5.
-      subst. f_equal. apply IHu' with (w1 := w1) (w2 := w2). exact H4.
-      exact H3.
+      subst x2. f_equal. apply IHu' with (w1 := w1) (w2 := w2).
+      exact H4. exact H3.
 Qed.
 
 Lemma case_egal1 : forall (u v : word) (x : letter),
@@ -238,41 +236,46 @@ Lemma case_egal1 : forall (u v : word) (x : letter),
 Proof.
   intros u v x H1 H2.
   pose proof (case_egal1_generalized u v (x :: v) ( x :: u)) as H3.
-  apply H3 in H1. replace u with v. reflexivity. exact H2.
+  apply H3 in H1. subst v. reflexivity. exact H2.
 Qed.
 
 Lemma case_egal : forall (u v : word),
   (|u| = |v| /\ u ++ v = v ++ u) -> u = v.
 Proof.
-  intro u. induction u.
-   - intros. destruct H. simpl in H0. simpl in H. symmetry in H. apply len_0 in H. symmetry. assumption.
-   - intros. destruct H. induction v.
-     + simpl in H. inversion H.
-     + simpl in H. apply eq_add_S in H. simpl in H0. injection H0. intros. symmetry in H2.
-        subst. assert (|u| = |v| -> u ++ (cons l v) = v ++ (cons l u)). 
-        * intro. assumption.
-        * apply case_egal1 in H2. f_equal. assert (|u|=|v| /\ u++v = v++u). split. assumption. assumption.
-            specialize (IHu v H3). subst. reflexivity. assumption. assumption.
+  intro u. induction u as [| x1 u' IHu'].
+  - intros v H. destruct H as [H1 H2]. simpl in H2. simpl in H1. 
+    symmetry in H1. apply len_0 in H1. symmetry. exact H1.
+  - intros v H. destruct H as [H1 H2]. induction v as [| x2 v' IHv'].
+    + simpl in H1. inversion H1.
+    + simpl in H1. apply eq_add_S in H1. simpl in H2. injection H2.
+      intros H3 H4. symmetry in H2. subst x2.
+      assert (|u'| = |v'| -> u' ++ (x1 :: v') = v' ++ (x1 :: u')) as H4. 
+      * intro H4. exact H3.
+      * apply case_egal1 in H4. f_equal.
+        assert (|u'| = |v'| /\ u' ++ v' = v' ++ u') as H5.
+        split; assumption. specialize (IHu' v'). apply IHu' in H5.
+        exact H5. all: exact H1.
 Qed.
 
 Lemma three_cases : forall (u v : word),
   |u| = |v| \/ |u| > |v| \/ |u| < |v|.
 Proof. intros u v. apply cases_int. Qed.
 
-Lemma conc_egal_2 :
-  forall u v v' : word, u++v = u++v' -> v=v'.
+Lemma conc_egal_2 : forall (u v1 v2 : word),
+  u ++ v1 = u ++ v2 -> v1 = v2.
 Proof.
-  intro u. induction u.
-  - intros. simpl in H. assumption.
-  - intros. simpl in H. injection H. intro. apply IHu in H0. assumption.
+  intros u v1 v2. induction u as [| x u' IHu'].
+  - intro H. simpl in H. exact H.
+  - intros H1. simpl in H1. injection H1. intro H2.
+    apply IHu'. exact H2.
 Qed.
 
-Lemma conc_pow : forall (n m : nat) (u : word),
-  u^n ++ u^m = u^(n + m).
+Lemma conc_pow : forall (m n : nat) (u : word),
+  u^m ++ u^n = u^(m + n).
 Proof.
-  intros. induction n as [| n' IHn'].
+  intros m n u. induction m as [| m' IHm'].
   - reflexivity.
-  - simpl. rewrite <- conc_assoc. rewrite IHn'. reflexivity.
+  - simpl. rewrite <- conc_assoc. rewrite IHm'. reflexivity.
 Qed.
 
 Lemma empty_or_larger : forall (v : word), v = epsilon \/ |v| > 0.
@@ -282,25 +285,31 @@ Proof.
   - right. simpl. apply int_strict_positive.
 Qed.
 
-Lemma pref_cut :
-  forall v u :word, |u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v -> 
-    exists u' : word, |u'| < |u| /\ u = v++u'.
+Lemma pref_cut : forall (u v : word),
+  |u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v -> 
+  exists (w : word), |w| < |u| /\ u = v ++ w.
 Proof.
-  intro. induction v.
-  - intros. destruct H. destruct H0. inversion H0.
-  - intro u. destruct u. 
-    + intros. destruct H. simpl in H. inversion H.
-    + intros. destruct H. destruct H0. inversion H1. subst. rewrite H4. assert (v=epsilon \/ |v|>0).
-      apply empty_or_larger. case H2. 
-      * intro. rewrite H3. simpl. exists u. split. apply succ_pos_strict. reflexivity.
-      * intro. simpl. assert (|u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v). split.
-        simpl in H. apply sup_succ_strict in H. assumption. split. assumption. assumption.
-        specialize (IHv u H5). destruct IHv as [x H6]. exists x. destruct H6. apply lt_S in H6.
-        split. assumption. f_equal. assumption.
+  intros u v. revert u. induction v as [| x2 v' IHv'].
+  - intros u H. destruct H as [H1 H2]. destruct H2 as [H2 H3].
+    inversion H2.
+  - intro u. destruct u as [| x1 u'] eqn:E.
+    + intro H. destruct H as [H1 H2]. inversion H1.
+    + intro H. destruct H as [H1 [H2 H3]]. injection H3. intros H4 H5.
+      subst x2. pose proof (empty_or_larger v') as H5. simpl. case H5.
+      clear H2 H3 H5.
+      * intro H6. rewrite H6. exists u'. split. apply succ_pos_strict.
+        reflexivity.
+      * intro H6.
+        assert (|u'| > |v'| /\ |v'| > 0 /\ prefixe (|v'|) u' = v') as H7.
+        repeat split. simpl in H1. apply sup_succ_strict in H1. exact H1.
+        exact H6. exact H4. clear H1 H6 H4. 
+        specialize (IHv' u' H7). destruct IHv' as [w H8]. exists w.
+        destruct H8 as [H8 H9]. apply lt_S in H8. split. exact H8.
+        f_equal. exact H9.
 Qed.
 
-Lemma fine_wilf_aux :
-  forall (k: nat) (u v : word), ((|u| + |v| <= k) /\ u++v = v++u) -> 
+Lemma fine_wilf_aux : forall (k : nat) (u v : word),
+  ((|u| + |v| <= k) /\ u ++ v = v ++ u) -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
 Proof.
   intro k. induction k.
@@ -332,8 +341,8 @@ Proof.
         exists w, (m + n), m. split; assumption.
 Qed.
 
-Theorem fine_wilf :
-  forall (u v : word), u++v = v++u -> 
+Theorem fine_wilf : forall (u v : word),
+  u ++ v = v ++ u -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
 Proof.
   intros. assert (forall k, ((|u| + |v| <= k) /\ u++v = v++u) -> 
