@@ -312,32 +312,52 @@ Lemma fine_wilf_aux : forall (k : nat) (u v : word),
   ((|u| + |v| <= k) /\ u ++ v = v ++ u) -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
 Proof.
-  intro k. induction k.
-  - intros. destruct H. inversion H. exists v , 0, 0. simpl. apply zero_split in H2. destruct H2.
-    apply len_0 in H1, H2. split. assumption. assumption.
-  - intros u v. assert (|u| = |v| \/ |u| > |v| \/ |u| < |v|). apply three_cases. destruct H as [HA | [HB | HC]].
-    + intros. destruct H. assert (|u| = |v| /\ u++v = v++u). split. assumption.
-      assumption. apply case_egal in H1. exists u, 1, 1. split. simpl. rewrite <- conc_nil_l. reflexivity. simpl.
-      rewrite <- conc_nil_l. symmetry. assumption.
-    + intros. assert (v=epsilon \/ |v|>0). apply empty_or_larger. case H0.
-      * intro. exists u, 0, 1. simpl. split. rewrite <- conc_nil_l. reflexivity. assumption.
-      * intro. destruct H. apply gt_to_le in HB as HB_2. specialize (pref_inside_first (|v|) u v HB_2). intro. rewrite H2 in H3.
-        rewrite pref_first_word in H3. symmetry in H3. assert (|u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v).
-        repeat split; assumption. apply pref_cut in H4. destruct H4 as [u' H4]. destruct H4.
-        rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (|u| + |v| <= S k /\ |u'| < |u|).
-        split; assumption. specialize (remove_S_keep_o_n (|u|) (|v|) (|u'|) k H6). intro.
-        assert (|u'| + |v| <= k /\ u'++v = v++u'). split; assumption. apply IHk in H8.
-        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow in H5.
-        exists w, n, (n + m). split; assumption.
-    + intros. assert (u=epsilon \/ |u|>0). apply empty_or_larger. case H0.
-      * intro. exists v, 1, 0. simpl. split. assumption. rewrite <- conc_nil_l. reflexivity.
-      * intro. destruct H. apply gt_to_le in HC as HC_2. specialize (pref_inside_first (|u|) v u HC_2). intro. rewrite <- H2 in H3.
-        rewrite pref_first_word in H3. symmetry in H3. assert (|v| > |u| /\ |u| > 0 /\ prefixe (|u|) v = u).
-        repeat split; assumption. apply pref_cut in H4. destruct H4 as [v' H4]. destruct H4.
-        rewrite H5 in H2. rewrite <- conc_assoc in H2. apply conc_egal_2 in H2. assert (|u| + |v| <= S k /\ |v'| < |v|).
-        split; assumption. specialize (remove_S_keep_m_o (|u|) (|v|) (|v'|) k H6). intro.
-        assert (|u| + |v'| <= k /\ u++v' = v'++u). split; assumption. apply IHk in H8.
-        destruct H8 as [w [n [m H8]]]. destruct H8. rewrite H8 in H5. rewrite H9 in H5. rewrite conc_pow in H5.
+  intro k. induction k as [| k' IHk'].
+  - intros u v H. destruct H as [H1 H2]. inversion H1. exists v , 0, 0.
+    simpl. apply zero_split in H0. destruct H0 as [H3 H4].
+    apply len_0 in H3, H4. split. exact H3. exact H4.
+  - intros u v. pose proof (three_cases u v) as H.
+    destruct H as [HCASE_1 | [HCASE_2 | HCASE_3]].
+    + intro H. destruct H as [H1 H2].
+      assert (|u| = |v| /\ u ++ v = v ++ u) as H3. split; assumption.
+      apply case_egal in H3. exists u, 1, 1.
+      split; simpl; rewrite <- conc_nil_l. reflexivity. symmetry.
+      exact H3.
+    + intro H1. pose proof (empty_or_larger v) as H2. case H2.
+      * intro H3. exists u, 0, 1. simpl. split. rewrite <- conc_nil_l.
+        reflexivity. exact H3.
+      * intro H3. destruct H1 as [H1 H4].
+        apply gt_to_le in HCASE_2 as H5.
+        specialize (pref_inside_first (|v|) u v H5). intro H6.
+        rewrite H4 in H6. rewrite -> pref_first_word in H6. symmetry in H6.
+        assert (|u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v) as H7.
+        repeat split; assumption. apply pref_cut in H7.
+        destruct H7 as [u' H7]. destruct H7 as [H7 H8]. rewrite H8 in H4.
+        rewrite <- conc_assoc in H4. apply conc_egal_2 in H4.
+        assert (|u| + |v| <= S k' /\ |u'| < |u|) as H9. split; assumption.
+        specialize (remove_S_keep_o_n (|u|) (|v|) (|u'|) k' H9). intro H10.
+        assert (|u'| + |v| <= k' /\ u' ++ v = v ++ u') as H11.
+        split; assumption. apply IHk' in H11.
+        destruct H11 as [w [n [m H11]]]. destruct H11 as [H11 H12].
+        rewrite H11, H12 in H8. rewrite conc_pow in H8.
+        exists w, n, (n + m). split. exact H8. exact H12.
+    + intro H1. pose proof (empty_or_larger u) as H2. case H2.
+      * intro H3. exists v, 1, 0. simpl. split. exact H3.
+        rewrite <- conc_nil_l. reflexivity.
+      * intro H3. destruct H1 as [H1 H4].
+        apply gt_to_le in HCASE_3 as H5.
+        specialize (pref_inside_first (|u|) v u H5). intro H6.
+        rewrite <- H4 in H6. rewrite pref_first_word in H6. symmetry in H6.
+        assert (|v| > |u| /\ |u| > 0 /\ prefixe (|u|) v = u) as H7.
+        repeat split; assumption. apply pref_cut in H7.
+        destruct H7 as [v' H7]. destruct H7 as [H7 H8]. rewrite H8 in H4.
+        rewrite <- conc_assoc in H4. apply conc_egal_2 in H4.
+        assert (|u| + |v| <= S k' /\ |v'| < |v|) as H9. split; assumption.
+        specialize (remove_S_keep_m_o (|u|) (|v|) (|v'|) k' H9). intro H10.
+        assert (|u| + |v'| <= k' /\ u ++ v' = v' ++ u) as H11.
+        split; assumption. apply IHk' in H11.
+        destruct H11 as [w [n [m H11]]]. destruct H11 as [H11 H12].
+        rewrite H11, H12 in H8. rewrite conc_pow in H8.
         exists w, (m + n), m. split; assumption.
 Qed.
 
@@ -345,11 +365,10 @@ Theorem fine_wilf : forall (u v : word),
   u ++ v = v ++ u -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
 Proof.
-  intros. assert (forall k, ((|u| + |v| <= k) /\ u++v = v++u) -> 
-  exists (w : word) (n m : nat), u = w^m /\ v = w^n). intro k. apply fine_wilf_aux.
-  specialize (H0 (|u| + |v|)). assert (|u| + |v| <= |u| + |v|). apply le_n.
-  assert (|u| + |v| <= |u| + |v| /\ u++v = v++u). split; assumption. apply H0 in H2.
-  destruct H2 as [w [n [m H_egalites]]]. exists w, n, m. assumption.
+  intros u v H1. pose proof (fine_wilf_aux (|u| + |v|) u v) as H2.
+  assert (|u| + |v| <= |u| + |v| /\ u ++ v = v ++ u) as H4. split.
+  apply le_n. exact H1. apply H2 in H4. destruct H4 as [w [n [m H4]]].
+  exists w, n, m. exact H4.
 Qed.
 
 End Fine_Wilf.
