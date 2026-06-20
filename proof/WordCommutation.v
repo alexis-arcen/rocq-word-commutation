@@ -1,3 +1,18 @@
+(* This one file contains the whole proof. It is divided into four 
+different sections, each with their name and description. 
+
+You do not need to install any external Rocq libraries.
+
+Furthermore we shall assume the lemmas below, provided by Rocq,
+are already proven:
+- le_n
+- eq_S
+- plus_Sn_m
+- plus_n_Sm 
+- le_S_n
+... *)
+
+(* Here are the different definitions used in this proof.*)
 Inductive letter : Type :=
   | a : letter
   | b : letter
@@ -41,40 +56,7 @@ Notation "| u |" := (len u) (at level 10) : word_scope.
 Notation "u ++ v" := (conc u v) : word_scope.
 Notation "u ^ n" := (pow n u) : word_scope.
 
-Section Combinatorics.
-
-Lemma conc_nil_l : forall (u : word), u = u ++ epsilon.
-Proof.
-  intro u. induction u as [| x u' IHu'].
-  - reflexivity.
-  - simpl. rewrite <- IHu'. reflexivity.
-Qed.
-
-Lemma conc_assoc : forall (u v w : word),
-  u ++ (v ++ w) = (u ++ v) ++ w.
-Proof.
-  intros u v w. induction u as [| x u' IHu'].
-  - reflexivity.
-  - simpl. rewrite -> IHu'. reflexivity.
-Qed.
-
-Lemma len_0 : forall (u : word), |u| = 0 -> u = epsilon.
-Proof.
-  intro u. destruct u as [| x u'] eqn:E.
-  - intro H. reflexivity.
-  - intro H. simpl in H. discriminate.
-Qed.
-
-Lemma pref_first_word : forall (u v : word),
-  prefixe (|u|) (u ++ v) = u.
-Proof.
-  intros u v. induction u as [| x u' IHu'].
-  - reflexivity.
-  - simpl. rewrite -> IHu'. reflexivity.
-Qed.
-
-End Combinatorics.
-
+(* This section contains basic lemmas used in Arithmetics. *)
 Section Arithmetics.
 
 Lemma add_0_r  : forall (n : nat), n + 0 = n.
@@ -204,7 +186,46 @@ Qed.
 
 End Arithmetics.
 
-Section Fine_Wilf.
+(* This section contains basic lemmas used in Combinatorics of 
+Words *)
+Section Combinatorics.
+
+Lemma conc_nil_l : forall (u : word), u = u ++ epsilon.
+Proof.
+  intro u. induction u as [| x u' IHu'].
+  - reflexivity.
+  - simpl. rewrite <- IHu'. reflexivity.
+Qed.
+
+Lemma conc_assoc : forall (u v w : word),
+  u ++ (v ++ w) = (u ++ v) ++ w.
+Proof.
+  intros u v w. induction u as [| x u' IHu'].
+  - reflexivity.
+  - simpl. rewrite -> IHu'. reflexivity.
+Qed.
+
+Lemma len_0 : forall (u : word), |u| = 0 -> u = epsilon.
+Proof.
+  intro u. destruct u as [| x u'] eqn:E.
+  - intro H. reflexivity.
+  - intro H. simpl in H. discriminate.
+Qed.
+
+Lemma empty_or_larger : forall (v : word), v = epsilon \/ |v| > 0.
+Proof.
+  intro v. destruct v as [|x v'] eqn:E.
+  - left. reflexivity.
+  - right. simpl. apply int_strict_positive.
+Qed.
+
+Lemma pref_first_word : forall (u v : word),
+  prefixe (|u|) (u ++ v) = u.
+Proof.
+  intros u v. induction u as [| x u' IHu'].
+  - reflexivity.
+  - simpl. rewrite -> IHu'. reflexivity.
+Qed.
 
 Lemma pref_inside_first : forall (k : nat) (u v : word),
   k <= |u| -> prefixe k (u ++ v) = prefixe k u.
@@ -216,6 +237,55 @@ Proof.
     + intro H. simpl in H. apply le_S_n in H.
       specialize (IHk' u' v H). simpl. rewrite IHk'. reflexivity.
 Qed.
+
+Lemma pref_cut : forall (u v : word),
+  |u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v -> 
+  exists (w : word), |w| < |u| /\ u = v ++ w.
+Proof.
+  intros u v. revert u. induction v as [| x2 v' IHv'].
+  - intros u H. destruct H as [H1 H2]. destruct H2 as [H2 H3].
+    inversion H2.
+  - intro u. destruct u as [| x1 u'] eqn:E.
+    + intro H. destruct H as [H1 H2]. inversion H1.
+    + intro H. destruct H as [H1 [H2 H3]]. injection H3. intros H4 H5.
+      subst x2. pose proof (empty_or_larger v') as H5. simpl. case H5.
+      clear H2 H3 H5.
+      * intro H6. rewrite H6. exists u'. split. apply succ_pos_strict.
+        reflexivity.
+      * intro H6.
+        assert (|u'| > |v'| /\ |v'| > 0 /\ prefixe (|v'|) u' = v') as H7.
+        repeat split. simpl in H1. apply sup_succ_strict in H1. exact H1.
+        exact H6. exact H4. clear H1 H6 H4. 
+        specialize (IHv' u' H7). destruct IHv' as [w H8]. exists w.
+        destruct H8 as [H8 H9]. apply lt_S in H8. split. exact H8.
+        f_equal. exact H9.
+Qed.
+
+Lemma three_cases : forall (u v : word),
+  |u| = |v| \/ |u| > |v| \/ |u| < |v|.
+Proof. intros u v. apply cases_int. Qed.
+
+Lemma conc_egal_2 : forall (u v1 v2 : word),
+  u ++ v1 = u ++ v2 -> v1 = v2.
+Proof.
+  intros u v1 v2. induction u as [| x u' IHu'].
+  - intro H. simpl in H. exact H.
+  - intro H1. simpl in H1. injection H1. intro H2.
+    apply IHu'. exact H2.
+Qed.
+
+Lemma conc_pow : forall (m n : nat) (u : word),
+  u^m ++ u^n = u^(m + n).
+Proof.
+  intros m n u. induction m as [| m' IHm'].
+  - reflexivity.
+  - simpl. rewrite <- conc_assoc. rewrite IHm'. reflexivity.
+Qed.
+
+End Combinatorics.
+
+(* Finally, this section contains the main proof. *)
+Section Fine_Wilf.
 
 Lemma case_egal1_generalized : forall (u v w1 w2 : word),
   |u| = |v| -> u ++ w1 = v ++ w2 -> u = v.
@@ -257,57 +327,11 @@ Proof.
         exact H5. all: exact H1.
 Qed.
 
-Lemma three_cases : forall (u v : word),
-  |u| = |v| \/ |u| > |v| \/ |u| < |v|.
-Proof. intros u v. apply cases_int. Qed.
 
-Lemma conc_egal_2 : forall (u v1 v2 : word),
-  u ++ v1 = u ++ v2 -> v1 = v2.
-Proof.
-  intros u v1 v2. induction u as [| x u' IHu'].
-  - intro H. simpl in H. exact H.
-  - intros H1. simpl in H1. injection H1. intro H2.
-    apply IHu'. exact H2.
-Qed.
-
-Lemma conc_pow : forall (m n : nat) (u : word),
-  u^m ++ u^n = u^(m + n).
-Proof.
-  intros m n u. induction m as [| m' IHm'].
-  - reflexivity.
-  - simpl. rewrite <- conc_assoc. rewrite IHm'. reflexivity.
-Qed.
-
-Lemma empty_or_larger : forall (v : word), v = epsilon \/ |v| > 0.
-Proof.
-  intro v. destruct v as [|x v'] eqn:E.
-  - left. reflexivity.
-  - right. simpl. apply int_strict_positive.
-Qed.
-
-Lemma pref_cut : forall (u v : word),
-  |u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v -> 
-  exists (w : word), |w| < |u| /\ u = v ++ w.
-Proof.
-  intros u v. revert u. induction v as [| x2 v' IHv'].
-  - intros u H. destruct H as [H1 H2]. destruct H2 as [H2 H3].
-    inversion H2.
-  - intro u. destruct u as [| x1 u'] eqn:E.
-    + intro H. destruct H as [H1 H2]. inversion H1.
-    + intro H. destruct H as [H1 [H2 H3]]. injection H3. intros H4 H5.
-      subst x2. pose proof (empty_or_larger v') as H5. simpl. case H5.
-      clear H2 H3 H5.
-      * intro H6. rewrite H6. exists u'. split. apply succ_pos_strict.
-        reflexivity.
-      * intro H6.
-        assert (|u'| > |v'| /\ |v'| > 0 /\ prefixe (|v'|) u' = v') as H7.
-        repeat split. simpl in H1. apply sup_succ_strict in H1. exact H1.
-        exact H6. exact H4. clear H1 H6 H4. 
-        specialize (IHv' u' H7). destruct IHv' as [w H8]. exists w.
-        destruct H8 as [H8 H9]. apply lt_S in H8. split. exact H8.
-        f_equal. exact H9.
-Qed.
-
+(* In order to prove the Commutation Lemma in its original form,
+we first need to prove an auxiliary version of it, using a given natural
+number k as the maximum sum of lengths of the words. We will then proceed
+to do an induction on this number k. *)
 Lemma fine_wilf_aux : forall (k : nat) (u v : word),
   ((|u| + |v| <= k) /\ u ++ v = v ++ u) -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
@@ -361,6 +385,10 @@ Proof.
         exists w, (m + n), m. split; assumption.
 Qed.
 
+(* Lastly, to prove the Commutation Lemma in its form as stated in the
+READ.me file, we simply use the lemma above given k = |u| + |v|. 
+And by using [le_n] we can prove the hypothesis 
+[|u| + |v| <= |u| + |v|] is always true. *)
 Theorem fine_wilf : forall (u v : word),
   u ++ v = v ++ u -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
