@@ -5,12 +5,12 @@ You do not need to install any external Rocq libraries.
 
 Furthermore we shall assume the lemmas below, provided by Rocq,
 are already proven:
-- le_n
 - eq_S
 - plus_Sn_m
 - plus_n_Sm 
 - le_S_n
-... *)
+- le_n_S 
+*)
 
 (* Here are the different definitions used in this proof.*)
 Inductive letter : Type :=
@@ -59,7 +59,7 @@ Notation "u ^ n" := (pow n u) : word_scope.
 (* This section contains basic lemmas used in Arithmetics. *)
 Section Arithmetics.
 
-Lemma add_0_r  : forall (n : nat), n + 0 = n.
+Lemma add_0_r : forall (n : nat), n + 0 = n.
 Proof.
   intro n. induction n as [| n' IHn'].
   - reflexivity.
@@ -69,15 +69,15 @@ Qed.
 Lemma plus_comm : forall (m n : nat), m + n = n + m.
 Proof. 
   intros m n. induction m as [| m' IHm'].
-  - simpl. apply plus_n_O. 
-  - simpl. rewrite <- plus_n_Sm. rewrite -> IHm'. reflexivity.
+  - simpl. rewrite -> add_0_r. reflexivity. 
+  - rewrite -> plus_Sn_m. rewrite <- plus_n_Sm. rewrite -> IHm'. reflexivity.
 Qed.
 
 Lemma zero_split : forall (m n : nat), m + n = 0 -> m = 0 /\ n = 0.
 Proof. 
   intros m n. destruct m as [| m'].
   - intro H. split. reflexivity. exact H.
-  - intro H. simpl in H. inversion H.
+  - intro H. rewrite -> plus_Sn_m in H. inversion H.
 Qed.
 
 Lemma gt_to_le : forall (m n : nat), n > m -> m <= n.
@@ -233,7 +233,7 @@ Proof.
   intro k. induction k as [| k' IHk'].
   - intros u v H. reflexivity.
   - intros u v. induction u as [| x u' IHu'].
-    + intro H. simpl in H. inversion H.
+    + intro H. unfold len in H. inversion H.
     + intro H. simpl in H. apply le_S_n in H.
       specialize (IHk' u' v H). simpl. rewrite IHk'. reflexivity.
 Qed.
@@ -327,7 +327,6 @@ Proof.
         exact H5. all: exact H1.
 Qed.
 
-
 (* In order to prove the Commutation Lemma in its original form,
 we first need to prove an auxiliary version of it, using a given natural
 number k as the maximum sum of lengths of the words. We will then proceed
@@ -338,57 +337,82 @@ Lemma fine_wilf_aux : forall (k : nat) (u v : word),
 Proof.
   intro k. induction k as [| k' IHk'].
   - intros u v H. destruct H as [H1 H2]. inversion H1. exists v , 0, 0.
-    simpl. apply zero_split in H0. destruct H0 as [H3 H4].
+    unfold pow. apply zero_split in H0. destruct H0 as [H3 H4].
     apply len_0 in H3, H4. split. exact H3. exact H4.
+
+  (* For the inductive case we need to proceed by cases on the parity of
+  |u| - |v|, hence the use of [three_cases]. *)  
   - intros u v. pose proof (three_cases u v) as H.
     destruct H as [HCASE_1 | [HCASE_2 | HCASE_3]].
+
+    (* For case |u| = |v|, we just use [case_egal]. *)
     + intro H. destruct H as [H1 H2].
       assert (|u| = |v| /\ u ++ v = v ++ u) as H3. split; assumption.
       apply case_egal in H3. exists u, 1, 1.
-      split; simpl; rewrite <- conc_nil_l. reflexivity. symmetry.
+      split; unfold pow; rewrite <- conc_nil_l. reflexivity. symmetry.
       exact H3.
+
+    (* For case |u| > |v|, we proceed by cases on |v| by using
+    [empty_or_larger]. *)
     + intro H1. pose proof (empty_or_larger v) as H2. case H2.
-      * intro H3. exists u, 0, 1. simpl. split. rewrite <- conc_nil_l.
+      * intro H3. exists u, 0, 1. unfold pow. split. rewrite <- conc_nil_l.
         reflexivity. exact H3.
       * intro H3. destruct H1 as [H1 H4].
+
+        (* Now supposing |v| > 0, we first show [u] can be decomposed into [v]
+        and another word [u']. *)
         apply gt_to_le in HCASE_2 as H5.
         specialize (pref_inside_first (|v|) u v H5). intro H6.
-        rewrite H4 in H6. rewrite -> pref_first_word in H6. symmetry in H6.
+        rewrite -> H4 in H6. rewrite -> pref_first_word in H6. symmetry in H6.
         assert (|u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v) as H7.
         repeat split; assumption. apply pref_cut in H7.
-        destruct H7 as [u' H7]. destruct H7 as [H7 H8]. rewrite H8 in H4.
-        rewrite <- conc_assoc in H4. apply conc_egal_2 in H4.
+        destruct H7 as [u' H7]. 
+        
+        (* Then we show [v] and [u'] do commute. *)
+        destruct H7 as [H7 H8]. rewrite -> H8 in H4. rewrite <- conc_assoc in H4.
+        apply conc_egal_2 in H4.
+
+        (* Finally we show |u'| + |v| <= k', by using [remove_S_keep_o_n], which
+        allows us to use the inductive hypothesis on [u'] and [v] and conclude
+        the proof for this second case. *)
         assert (|u| + |v| <= S k' /\ |u'| < |u|) as H9. split; assumption.
         specialize (remove_S_keep_o_n (|u|) (|v|) (|u'|) k' H9). intro H10.
         assert (|u'| + |v| <= k' /\ u' ++ v = v ++ u') as H11.
         split; assumption. apply IHk' in H11.
         destruct H11 as [w [n [m H11]]]. destruct H11 as [H11 H12].
-        rewrite H11, H12 in H8. rewrite conc_pow in H8.
+        rewrite -> H11, H12 in H8. rewrite -> conc_pow in H8.
         exists w, n, (n + m). split. exact H8. exact H12.
+
+    (* For this third and last case |u| < |v|, the reasoning is pretty much the 
+    same as the second case, except we have to be careful on how [v] is constructed
+    with [u] and [v']. *)
     + intro H1. pose proof (empty_or_larger u) as H2. case H2.
-      * intro H3. exists v, 1, 0. simpl. split. exact H3.
+      * intro H3. exists v, 1, 0. unfold pow. split. exact H3.
         rewrite <- conc_nil_l. reflexivity.
       * intro H3. destruct H1 as [H1 H4].
         apply gt_to_le in HCASE_3 as H5.
         specialize (pref_inside_first (|u|) v u H5). intro H6.
-        rewrite <- H4 in H6. rewrite pref_first_word in H6. symmetry in H6.
+        rewrite <- H4 in H6. rewrite -> pref_first_word in H6. symmetry in H6.
         assert (|v| > |u| /\ |u| > 0 /\ prefixe (|u|) v = u) as H7.
         repeat split; assumption. apply pref_cut in H7.
-        destruct H7 as [v' H7]. destruct H7 as [H7 H8]. rewrite H8 in H4.
+        destruct H7 as [v' H7]. 
+        
+        destruct H7 as [H7 H8]. rewrite -> H8 in H4.
         rewrite <- conc_assoc in H4. apply conc_egal_2 in H4.
+        
         assert (|u| + |v| <= S k' /\ |v'| < |v|) as H9. split; assumption.
         specialize (remove_S_keep_m_o (|u|) (|v|) (|v'|) k' H9). intro H10.
         assert (|u| + |v'| <= k' /\ u ++ v' = v' ++ u) as H11.
         split; assumption. apply IHk' in H11.
         destruct H11 as [w [n [m H11]]]. destruct H11 as [H11 H12].
-        rewrite H11, H12 in H8. rewrite conc_pow in H8.
+        rewrite -> H11, H12 in H8. rewrite -> conc_pow in H8.
         exists w, (m + n), m. split; assumption.
 Qed.
 
 (* Lastly, to prove the Commutation Lemma in its form as stated in the
-READ.me file, we simply use the lemma above given k = |u| + |v|. 
-And by using [le_n] we can prove the hypothesis 
-[|u| + |v| <= |u| + |v|] is always true. *)
+READ.me file, we simply use [fine_wilf_aux], given k = |u| + |v|. 
+And by using [le_n] we can prove the property  [|u| + |v| <= |u| + |v|]
+is always true. *)
 Theorem fine_wilf : forall (u v : word),
   u ++ v = v ++ u -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
