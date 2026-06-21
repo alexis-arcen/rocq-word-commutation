@@ -26,8 +26,9 @@ $$
 > $w$ has $p$ and $q$ as periods and $\left| w \right| \geqslant p+q - gdc(p,q)$, then $gdc(p,q)$ is a period of $w$.
 
 ## Project Structure
--   [./proof_documented](./proof_documented.v) : Contains the formal proof with documentation.
 -   [./theory.md](./theory.md) : Mathematical proof of the Commutation Lemma.
+-   [./assignment.md](./assignment.md) : Definitions and lemmas given by our professor.
+-   [./proof_documented](./proof_documented.v) : Formal proof with documentation.
 
 > [!IMPORTANT]
 > This is a supervised project; the outline of the main proof, along with several key
