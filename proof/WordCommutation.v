@@ -1,5 +1,5 @@
-(* This one file contains the whole proof. It is divided into four 
-different sections, each with their name and description. 
+(* This one file contains the whole documented proof. It is divided
+into four different sections, each with their name and description. 
 
 You do not need to install any external Rocq libraries.
 
@@ -10,7 +10,13 @@ are already proven:
 - plus_n_Sm 
 - le_S_n
 - le_n_S 
+
+And before reading the proofs documentation, it is highly recommended to
+fully understand Rocq's definition of <, >, <= and >=. 
 *)
+Require Import Setoid.
+
+Print le. Print lt. Print ge. Print gt.
 
 (* Here are the different definitions used in this proof.*)
 Inductive letter : Type :=
@@ -40,11 +46,11 @@ Fixpoint pow (n : nat) (u : word) : word :=
   | S n' => conc u (pow n' u)
   end.
 
-Fixpoint prefixe (k : nat) (u : word) : word :=
+Fixpoint prefix (k : nat) (u : word) : word :=
   match k, u with
   | 0, _ => epsilon
   | S k', epsilon => epsilon
-  | S k', cons x u' => cons x (prefixe k' u')
+  | S k', cons x u' => cons x (prefix k' u')
   end.
 
 Declare Scope word_scope.
@@ -61,109 +67,115 @@ Section Arithmetics.
 
 Lemma add_0_r : forall (n : nat), n + 0 = n.
 Proof.
-  intro n. induction n as [| n' IHn'].
+  induction n as [| n' IHn'].
   - reflexivity.
-  - apply eq_S in IHn'. rewrite -> plus_Sn_m. exact IHn'.
+  - apply eq_S in IHn'. 
+    rewrite -> plus_Sn_m; exact IHn'.
 Qed.
 
 Lemma plus_comm : forall (m n : nat), m + n = n + m.
 Proof. 
-  intros m n. induction m as [| m' IHm'].
-  - simpl. rewrite -> add_0_r. reflexivity. 
-  - rewrite -> plus_Sn_m. rewrite <- plus_n_Sm. rewrite -> IHm'. reflexivity.
+  intros m n. 
+  induction m as [| m' IHm'].
+  - rewrite -> add_0_r; reflexivity. 
+  - rewrite -> plus_Sn_m, <- plus_n_Sm, -> IHm'; reflexivity.
 Qed.
 
 Lemma zero_split : forall (m n : nat), m + n = 0 -> m = 0 /\ n = 0.
 Proof. 
-  intros m n. destruct m as [| m'].
-  - intro H. split. reflexivity. exact H.
-  - intro H. rewrite -> plus_Sn_m in H. inversion H.
+  intros [| m'] n H.
+  - split; [reflexivity | exact H]. 
+  - change (S (m' + n) = 0) in H.
+    inversion H.
+    (* [inversion H.] allows us to prove H is necessarily false
+    because 0 is not the successor of any number according to
+    nat definition. [discriminate] is then applied automatically. *)
 Qed.
 
 Lemma gt_to_le : forall (m n : nat), n > m -> m <= n.
 Proof. 
-  intros m n H. unfold gt in H. unfold lt in H. apply le_S_n.
-  apply le_S. exact H.
+  intros m n H. 
+  apply le_S_n, le_S; exact H.
 Qed.
 
 Lemma int_strict_positive : forall (n : nat), S n > 0.
-Proof.
-  intro n. unfold gt. unfold lt. induction n as [| n'].
+Proof. 
+  induction n as [| n'].
   - apply le_n.
-  - apply le_S in IHn'. exact IHn'.
+  - apply le_S in IHn'; exact IHn'.
 Qed.
 
 Lemma succ_pos_strict : forall (n : nat), n < S n.
-Proof. intro n. unfold lt. apply le_n. Qed.
+Proof. 
+  intro n. 
+  apply le_n. 
+Qed.
 
 Lemma sup_succ_strict : forall (m n : nat), S m > S n -> m > n.
 Proof.
-  intros m n H. unfold gt. unfold lt. unfold gt in H. unfold lt in H.
-  apply le_S_n in H. exact H.
+  intros m n H. 
+  apply le_S_n in H; exact H.
 Qed.
 
 Lemma lt_S : forall (m n : nat), n < m -> n < S m.
 Proof. 
-  intros m n H. unfold lt in H. unfold lt. apply le_S in H.
-  exact H.
+  intros m n H. 
+  apply le_S in H; exact H.
 Qed.
 
 Lemma lt_add_S_l_r : forall (m n : nat), m < n -> S m < S n.
 Proof.
-  intros m n H. unfold lt in H. unfold lt. apply le_n_S. exact H.
+  intros m n H. 
+  apply le_n_S; exact H.
 Qed.
 
 Lemma lt_add_n_l_r : forall (m n o : nat), o < m -> o+n < m+n.
 Proof.
-  intros m n o. induction n as [| n' IHn'].
-  - intro H. do 2 rewrite -> add_0_r. exact H.
-  - intro H. do 2 rewrite <- plus_n_Sm. apply lt_add_S_l_r.
-    apply IHn'. exact H.
+  intros m n o H. 
+  induction n as [| n' IHn'].
+  - rewrite -> !add_0_r; exact H.
+  - rewrite <- !plus_n_Sm. 
+    apply lt_add_S_l_r, IHn'.
 Qed.
 
 Lemma lt_le_trans : forall (m n o : nat), m < n /\ n <= o -> m < o.
 Proof.
-  unfold lt. intros m n o H. destruct H as [H1 H2]. 
+  intros m n o [H1 H2]. 
   induction H2 as [| o' IHo'1 IHo'2].
   - exact H1.
-  - apply le_S. exact IHo'2.
+  - apply le_S; exact IHo'2.
 Qed.
 
 Lemma remove_S_keep_o_n : forall (m n o k : nat),
   m + n <= S k /\ o < m -> o + n <= k.
 Proof. 
-  intros m n o k H. destruct H as [H1 H2].
-  apply lt_add_n_l_r with (o := o) (m := m) (n := n) in H2.
-  assert (o + n < m + n /\ m + n <= S k) as H3. split; assumption.
-  apply lt_le_trans  in H3. unfold lt in H3.
-  apply le_S_n in H3. exact H3.
+  intros m n o k [H1 H2].
+  apply le_S_n, (lt_le_trans _ (n + m) _).
+  rewrite (plus_comm n m).
+  split; [apply lt_add_n_l_r; exact H2 | exact H1].
 Qed.
 
 Lemma remove_S_keep_m_o : forall (m n o k : nat),
   m + n <= S k /\ o < n -> m + o <= k.
 Proof. 
-  intros m n o k H. destruct H as [H1 H2].
-  assert (o + m < n + m) as H3. apply lt_add_n_l_r. exact H2.
-  replace (m+n) with (n+m) in H1.
-  assert (o + m < n + m /\ n + m <= S k) as H4. split; assumption.
-  apply lt_le_trans  in H4. apply le_S_n in H4.
-  replace (m+o) with (o+m). exact H4. all: apply plus_comm.
+  intros m n o k [H1 H2].
+  rewrite plus_comm.
+  apply le_S_n, (lt_le_trans _ (n + m) _).
+  split; [apply lt_add_n_l_r; exact H2 | rewrite plus_comm; exact H1].
 Qed.
 
 Lemma le_disjunction : forall (m n : nat), m <= n -> m = n \/ m < n.
 Proof.
-  intro m. induction m as [| m' IHm'].
-  - intro n. destruct n as [| n'].
-    + intro H. left. reflexivity.
-    + intro H. right. pose proof (int_strict_positive n') as H1.
-    unfold gt in H1. exact H1.
-  - intro n. destruct n as [| n'].
-    + intro H. inversion H.
-    + intro H. specialize (IHm' n'). apply le_S_n in H.
-      apply IHm' in H. case H as [H1 | H2].
-      * left. apply eq_S. exact H1.
-      * right. unfold lt. unfold lt in H2. apply le_n_S in H2.
-        exact H2.
+  induction m as [| m' IHm'].
+  - intros [| n'] H.
+    + left; reflexivity.
+    + right; exact (int_strict_positive n').
+  - intros [| n'] H.
+    + inversion H. (* Same kind of [inversion] as before.*)
+    + apply le_S_n, IHm' in H. 
+      case H as [H1 | H2].
+      * left; f_equal; exact H1.
+      * right; apply le_n_S in H2; exact H2.
 Qed.
 
 Lemma cases_int : forall (m n : nat), m = n \/ m > n \/ m < n.
@@ -220,7 +232,7 @@ Proof.
 Qed.
 
 Lemma pref_first_word : forall (u v : word),
-  prefixe (|u|) (u ++ v) = u.
+  prefix (|u|) (u ++ v) = u.
 Proof.
   intros u v. induction u as [| x u' IHu'].
   - reflexivity.
@@ -228,7 +240,7 @@ Proof.
 Qed.
 
 Lemma pref_inside_first : forall (k : nat) (u v : word),
-  k <= |u| -> prefixe k (u ++ v) = prefixe k u.
+  k <= |u| -> prefix k (u ++ v) = prefix k u.
 Proof.
   intro k. induction k as [| k' IHk'].
   - intros u v H. reflexivity.
@@ -239,7 +251,7 @@ Proof.
 Qed.
 
 Lemma pref_cut : forall (u v : word),
-  |u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v -> 
+  |u| > |v| /\ |v| > 0 /\ prefix (|v|) u = v -> 
   exists (w : word), |w| < |u| /\ u = v ++ w.
 Proof.
   intros u v. revert u. induction v as [| x2 v' IHv'].
@@ -253,7 +265,7 @@ Proof.
       * intro H6. rewrite H6. exists u'. split. apply succ_pos_strict.
         reflexivity.
       * intro H6.
-        assert (|u'| > |v'| /\ |v'| > 0 /\ prefixe (|v'|) u' = v') as H7.
+        assert (|u'| > |v'| /\ |v'| > 0 /\ prefix (|v'|) u' = v') as H7.
         repeat split. simpl in H1. apply sup_succ_strict in H1. exact H1.
         exact H6. exact H4. clear H1 H6 H4. 
         specialize (IHv' u' H7). destruct IHv' as [w H8]. exists w.
@@ -332,13 +344,19 @@ we first need to prove an auxiliary version of it, using a given natural
 number k as the maximum sum of lengths of the words. We will then proceed
 to do an induction on this number k. *)
 Lemma fine_wilf_aux : forall (k : nat) (u v : word),
-  ((|u| + |v| <= k) /\ u ++ v = v ++ u) -> 
+  (|u| + |v| <= k) /\ u ++ v = v ++ u -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
 Proof.
   intro k. induction k as [| k' IHk'].
-  - intros u v H. destruct H as [H1 H2]. inversion H1. exists v , 0, 0.
-    unfold pow. apply zero_split in H0. destruct H0 as [H3 H4].
-    apply len_0 in H3, H4. split. exact H3. exact H4.
+  - intros u v H. destruct H as [H1 H2]. 
+    inversion H1. exists v , 0, 0. unfold pow. 
+    apply zero_split in H0. destruct H0 as [H3 H4].
+    apply len_0 in H3, H4. split. 
+    exact H3. exact H4.
+    (* note : [inversion H1] allows us to to show |u| + |v| = 0. In this 
+    tactic, Rocq unfolds the definition of [le] and finds [le_n] is the 
+    only constructor with which H1 could have been made. 
+    Zero is indeed not the predecessor of any natural number. *)
 
   (* For the inductive case we need to proceed by cases on the parity of
   |u| - |v|, hence the use of [three_cases]. *)  
@@ -347,30 +365,33 @@ Proof.
 
     (* For case |u| = |v|, we just use [case_egal]. *)
     + intro H. destruct H as [H1 H2].
-      assert (|u| = |v| /\ u ++ v = v ++ u) as H3. split; assumption.
-      apply case_egal in H3. exists u, 1, 1.
-      split; unfold pow; rewrite <- conc_nil_l. reflexivity. symmetry.
-      exact H3.
+      assert (|u| = |v| /\ u ++ v = v ++ u) as H3.
+      split; assumption. apply case_egal in H3. 
+      exists u, 1, 1.
+      split; unfold pow; rewrite <- conc_nil_l. 
+      reflexivity. symmetry. exact H3.
 
     (* For case |u| > |v|, we proceed by cases on |v| by using
     [empty_or_larger]. *)
-    + intro H1. pose proof (empty_or_larger v) as H2. case H2.
-      * intro H3. exists u, 0, 1. unfold pow. split. rewrite <- conc_nil_l.
-        reflexivity. exact H3.
+    + intro H1. pose proof (empty_or_larger v) as H2.
+      case H2.
+      * intro H3. exists u, 0, 1. unfold pow. split.
+        rewrite <- conc_nil_l. reflexivity. exact H3.
       * intro H3. destruct H1 as [H1 H4].
 
         (* Now supposing |v| > 0, we first show [u] can be decomposed into [v]
         and another word [u']. *)
         apply gt_to_le in HCASE_2 as H5.
-        specialize (pref_inside_first (|v|) u v H5). intro H6.
-        rewrite -> H4 in H6. rewrite -> pref_first_word in H6. symmetry in H6.
-        assert (|u| > |v| /\ |v| > 0 /\ prefixe (|v|) u = v) as H7.
+        specialize (pref_inside_first (|v|) u v H5).
+        intro H6. rewrite -> H4 in H6.
+        rewrite -> pref_first_word in H6. symmetry in H6.
+        assert (|u| > |v| /\ |v| > 0 /\ prefix (|v|) u = v) as H7.
         repeat split; assumption. apply pref_cut in H7.
         destruct H7 as [u' H7]. 
         
         (* Then we show [v] and [u'] do commute. *)
-        destruct H7 as [H7 H8]. rewrite -> H8 in H4. rewrite <- conc_assoc in H4.
-        apply conc_egal_2 in H4.
+        destruct H7 as [H7 H8]. rewrite -> H8 in H4.
+        rewrite <- conc_assoc in H4. apply conc_egal_2 in H4.
 
         (* Finally we show |u'| + |v| <= k', by using [remove_S_keep_o_n], which
         allows us to use the inductive hypothesis on [u'] and [v] and conclude
@@ -393,7 +414,7 @@ Proof.
         apply gt_to_le in HCASE_3 as H5.
         specialize (pref_inside_first (|u|) v u H5). intro H6.
         rewrite <- H4 in H6. rewrite -> pref_first_word in H6. symmetry in H6.
-        assert (|v| > |u| /\ |u| > 0 /\ prefixe (|u|) v = u) as H7.
+        assert (|v| > |u| /\ |u| > 0 /\ prefix (|u|) v = u) as H7.
         repeat split; assumption. apply pref_cut in H7.
         destruct H7 as [v' H7]. 
         
@@ -411,8 +432,8 @@ Qed.
 
 (* Lastly, to prove the Commutation Lemma in its form as stated in the
 READ.me file, we simply use [fine_wilf_aux], given k = |u| + |v|. 
-And by using [le_n] we can prove the property  [|u| + |v| <= |u| + |v|]
-is always true. *)
+And by using [le_n] we can prove the property |u| + |v| <= |u| + |v|
+is always true before concluding. *)
 Theorem fine_wilf : forall (u v : word),
   u ++ v = v ++ u -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
