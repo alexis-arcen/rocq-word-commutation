@@ -29,8 +29,3 @@ $$
 -   [./theory.md](./theory.md) : Mathematical proof of the Commutation Lemma.
 -   [./assignment.md](./assignment.md) : Definitions and lemmas given by our professor.
 -   [./proof_documented](./proof_documented.v) : Formal proof with documentation.
-
-> [!IMPORTANT]
-> This is a supervised project; the outline of the main proof, along with several key
-> lemmas, were provided by our instructor. Therefore, all provided materials will be
-> explicitly credited. See [Rocq Implementation](./docs/rocq_details.md) for more details.
