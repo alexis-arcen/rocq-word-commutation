@@ -356,7 +356,7 @@ Proof.
     (* note : [inversion H1] allows us to to show |u| + |v| = 0. In this 
     tactic, Rocq unfolds the definition of [le] and finds [le_n] is the 
     only constructor with which H1 could have been made. 
-    Zero is indeed not the predecessor of any natural number. *)
+    Zero is indeed not the successor of any natural number. *)
 
   (* For the inductive case we need to proceed by cases on the parity of
   |u| - |v|, hence the use of [three_cases]. *)  
