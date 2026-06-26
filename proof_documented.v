@@ -14,7 +14,6 @@ are already proven:
 And before reading the proofs documentation, it is highly recommended to
 fully understand Rocq's definition of <, >, <= and >=. 
 *)
-Require Import Setoid.
 
 Print le. Print lt. Print ge. Print gt.
 
@@ -76,10 +75,12 @@ Proof.
   intros [| m'] n H.
   - split; [reflexivity | exact H].
   - inversion H. 
-(* [inversion] on H allows us to prove the hypothesis is
-necessarily false because 0 is not the successor of any
-number according to nat definition. [discriminate] is then
-applied automatically. *)
+(* [inversion H] : Rocq evaluates S m' + n to S (m' + n) thanks to [+]
+definition. It then sees that each side of the equality was made with a
+different nat constructor. Since constructors are by definition mutually
+disjoint, these two elements cannot be equal. The hypothesis H is therefore
+equivalent to False. [inversion H] detects this contradiction and automatically
+concludes the proof. *)
 Qed.
 
 Lemma gt_to_le : forall (m n : nat), n > m -> m <= n.
@@ -92,13 +93,13 @@ Lemma succ_pos_strict : forall (n : nat), n < S n.
 Proof. intro n. apply le_n. Qed.
 
 Lemma sup_succ_strict : forall (m n : nat), S m > S n -> m > n.
-Proof. intros m n H. apply le_S_n in H; assumption. Qed.
+Proof. intros m n H. exact (le_S_n _ _ H). Qed.
 
 Lemma lt_S : forall (m n : nat), n < m -> n < S m.
-Proof. intros m n H. apply le_S in H; assumption. Qed.
+Proof. intros m n H. exact (le_S _ _ H). Qed.
 
 Lemma lt_add_S_l_r : forall (m n : nat), m < n -> S m < S n.
-Proof. intros m n H. apply le_n_S; assumption. Qed.
+Proof. intros m n H. apply le_n_S. assumption. Qed.
 
 Lemma lt_add_n_l_r : forall (m n o : nat), o < m -> o+n < m+n.
 Proof. intros m n o H. induction n; [rewrite !add_0_r | rewrite <- !plus_n_Sm; apply lt_add_S_l_r]; assumption. Qed.
@@ -121,7 +122,7 @@ Proof.
   intros m n o k [H1 H2].
   rewrite plus_comm.
   apply le_S_n, (lt_le_trans _ (n + m) _).
-  split; [apply lt_add_n_l_r; exact H2 | rewrite plus_comm; exact H1].
+  split; [apply lt_add_n_l_r | rewrite plus_comm ]; assumption.
 Qed.
 
 Lemma le_disjunction : forall (m n : nat), m <= n -> m = n \/ m < n.
@@ -150,7 +151,7 @@ Lemma conc_assoc : forall (u v w : word), u ++ (v ++ w) = (u ++ v) ++ w.
 Proof. intros u v w; induction u as [| x u' IHu']; [| simpl; rewrite IHu']; reflexivity. Qed.
 
 Lemma len_0 : forall (u : word), |u| = 0 -> u = epsilon.
-Proof. destruct u; intro H; [reflexivity | simpl in H; discriminate]. Qed.
+Proof. destruct u; intro H; [reflexivity | discriminate]. Qed.
 
 Lemma empty_or_larger : forall (v : word), v = epsilon \/ |v| > 0.
 Proof. intro v. destruct v; [left; reflexivity | right; apply int_strict_positive]. Qed.
@@ -165,28 +166,36 @@ Proof.
   induction k as [| k' IHk'].
   - reflexivity.
   - intros [| x u'] v H; [inversion H | apply le_S_n in H; simpl; f_equal; apply IHk'; assumption].
+    (* [inversion H] : Rocq evaluates |epsilon| to 0 by the definition of [len].
+    0 cannot be the successor of a nat. Therefore H <-> False. The proof
+    is concluded. *)
 Qed.
 
 Lemma pref_cut : forall (u v : word),
   |u| > |v| /\ |v| > 0 /\ prefix (|v|) u = v -> 
   exists (w : word), |w| < |u| /\ u = v ++ w.
 Proof.
-  intros u v. revert u. induction v as [| x2 v' IHv'].
-  - intros u [H1 [H2 H3]]. inversion H2.
-  - destruct u as [| x1 u'] eqn:E.
-    + intros [H1 H2]. inversion H1.
-    + intros [H1 [H2 H3]]. injection H3. intros H4 H5.
-      subst x2. pose proof (empty_or_larger v') as H5. simpl. case H5.
-      clear H2 H3 H5.
-      * intro H6. rewrite H6. exists u'. split. apply succ_pos_strict.
-        reflexivity.
-      * intro H6.
-        assert (|u'| > |v'| /\ |v'| > 0 /\ prefix (|v'|) u' = v') as H7.
-        repeat split. simpl in H1. apply sup_succ_strict in H1. exact H1.
-        exact H6. exact H4. clear H1 H6 H4. 
-        specialize (IHv' u' H7). destruct IHv' as [w H8]. exists w.
-        destruct H8 as [H8 H9]. apply lt_S in H8. split. exact H8.
-        f_equal. exact H9.
+  intros u v; revert u; induction v as [| x2 v' IHv'].
+  - intros u [_ [H _]]; inversion H.
+    (* [inversion H] : Rocq evaluates |epsilon| to 0 and because 0 > 0
+    is an empty type according to [lt] definiton, H <-> False. The proof
+    is concluded. *)
+
+  - destruct u as [| x1 u'].
+    + intros [H _]. inversion H.
+    (* [inversion H] : Same as above but this time Rocq evaluates
+    | x2 :: v' | to S (| v' |). *)
+
+    + intros [H1 [H2 H3]]. injection H3; intros H4 H5.
+      (* [injection H3] : Since the constructor [cons] is by definition
+      injective, Rocq splits the equation into two new equalities : one for
+      the letters and one for the rest. *)
+
+      subst x2; simpl; destruct (empty_or_larger v').
+      * rewrite H; exists u'; split; [apply succ_pos_strict | reflexivity].
+      * assert (H7 : |u'| > |v'| /\ |v'| > 0 /\ prefix (|v'|) u' = v') by (repeat split; [simpl in H1; apply sup_succ_strict in H1 | | ]; assumption).
+        destruct (IHv' u' H7) as [w [H8 H9]]; apply lt_S in H8. 
+        exists w; split; [| f_equal]; assumption.
 Qed.
 
 Lemma three_cases : forall (u v : word),
@@ -196,8 +205,8 @@ Proof. intros u v. apply cases_int. Qed.
 Lemma conc_egal_2 : forall (u v1 v2 : word),
   u ++ v1 = u ++ v2 -> v1 = v2.
 Proof. intros u v1 v2. induction u as [| x u' IHu']; intro H; [| injection H; intro; apply IHu']; assumption. Qed.
-(* [injection H.] here allows us to remove the letter x in
-both sides of the equality H. *)
+(* [injection H] : Same as [pref_cut]'s injection, but this time both x's are the same
+so Rocq only needs to keep the second equality. *)
 
 Lemma conc_pow : forall (m n : nat) (u : word),
   u^m ++ u^n = u^(m + n).
@@ -209,44 +218,36 @@ End Combinatorics.
 Section Fine_Wilf.
 
 Lemma case_egal1_generalized : forall (u v w1 w2 : word),
-  |u| = |v| -> u ++ w1 = v ++ w2 -> u = v.
+  |u| = |v| ->
+  u ++ w1 = v ++ w2 ->
+  u = v.
 Proof.
-  intro u. induction u as [| x1 u' IHu'].
-  - intros v w1 w2 H1 H2. simpl in H1. symmetry in H1.
-    apply len_0 in H1. symmetry. exact H1.
-  - intro v. destruct v as [| x2 v'] eqn:E.
-    + intros w1 w2 H1 H2. simpl in H1. inversion H1.
-    + intros w1 w2 H1 H2. simpl in H1. injection H2. intro H3.
-      simpl in H1. injection H1. intros H4 H5.
-      subst x2. f_equal. apply IHu' with (w1 := w1) (w2 := w2).
-      exact H4. exact H3.
+  induction u as [| x1 u' IHu'].
+  - intros v w1 w2 H1 H2; symmetry in H1 |- *; exact (len_0 _ H1).
+  - intros [| x2 v'] w1 w2 H1 H2.
+    + inversion H1.
+      (* [inversion H1] Rocq evaluates |x1 :: u'| to S |u'| then |epsilon| to 0. 
+      Since zero cannot be the successor of a nat, the proof is concluded.  *)
+
+    + injection H1 as H3; injection H2 as H4 H5; subst x2; f_equal; exact (IHu' _ _ _ H3 H5). 
 Qed.
 
 Lemma case_egal1 : forall (u v : word) (x : letter),
-  |u| = |v| -> u ++ (x :: v) = v ++ (x :: u) -> u ++ v = v ++ u.
-Proof.
-  intros u v x H1 H2.
-  pose proof (case_egal1_generalized u v (x :: v) ( x :: u)) as H3.
-  apply H3 in H1. subst v. reflexivity. exact H2.
-Qed.
-
+  |u| = |v| ->
+  u ++ (x :: v) = v ++ (x :: u) ->
+  u ++ v = v ++ u.
+Proof. intros u v x H1 H2; pose proof (case_egal1_generalized _ _ _ _ H1 H2); subst; reflexivity. Qed.
+ 
 Lemma case_egal : forall (u v : word),
   (|u| = |v| /\ u ++ v = v ++ u) -> u = v.
 Proof.
-  intro u. induction u as [| x1 u' IHu'].
-  - intros v H. destruct H as [H1 H2]. simpl in H2. simpl in H1. 
-    symmetry in H1. apply len_0 in H1. symmetry. exact H1.
-  - intros v H. destruct H as [H1 H2]. induction v as [| x2 v' IHv'].
-    + simpl in H1. inversion H1.
-    + simpl in H1. apply eq_add_S in H1. simpl in H2. injection H2.
-      intros H3 H4. symmetry in H2. subst x2.
-      assert (|u'| = |v'| -> u' ++ (x1 :: v') = v' ++ (x1 :: u')) as H4. 
-      * intro H4. exact H3.
-      * apply case_egal1 in H4. f_equal.
-        assert (|u'| = |v'| /\ u' ++ v' = v' ++ u') as H5.
-        split; assumption. specialize (IHu' v'). apply IHu' in H5.
-        exact H5. all: exact H1.
-Qed.
+  induction u as [| x1 u' IHu'].
+  - intros v [H1 H2]; symmetry in H1 |- *; exact (len_0 _ H1).
+  - intros [| x2 v'] [H1 H2].
+    + inversion H1.
+    + injection H1 as H1; injection H2 as H2 H3; subst x2.
+      f_equal; exact (IHu' v' (conj H1 (case_egal1 _ _ _ H1 H3))).
+Qed.  
 
 (* In order to prove the Commutation Lemma in its original form,
 we first need to prove an auxiliary version of it, using a given natural
@@ -256,8 +257,8 @@ Lemma fine_wilf_aux : forall (k : nat) (u v : word),
   (|u| + |v| <= k) /\ u ++ v = v ++ u -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
 Proof.
-  intro k. induction k as [| k' IHk'].
-  - intros u v H. destruct H as [H1 H2]. 
+  induction k as [| k' IHk'].
+  - intros u v [H1 H2]. 
     inversion H1. exists v , 0, 0. unfold pow. 
     apply zero_split in H0. destruct H0 as [H3 H4].
     apply len_0 in H3, H4. split. 
@@ -269,8 +270,7 @@ Proof.
 
   (* For the inductive case we need to proceed by cases on the parity of
   |u| - |v|, hence the use of [three_cases]. *)  
-  - intros u v. pose proof (three_cases u v) as H.
-    destruct H as [HCASE_1 | [HCASE_2 | HCASE_3]].
+  - intros u v; destruct (three_cases u v) as [HCASE_1 | [HCASE_2 | HCASE_3]].
 
     (* For case |u| = |v|, we just use [case_egal]. *)
     + intro H. destruct H as [H1 H2].
@@ -346,11 +346,6 @@ is always true before concluding. *)
 Theorem fine_wilf : forall (u v : word),
   u ++ v = v ++ u -> 
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
-Proof.
-  intros u v H1. pose proof (fine_wilf_aux (|u| + |v|) u v) as H2.
-  assert (|u| + |v| <= |u| + |v| /\ u ++ v = v ++ u) as H4. split.
-  apply le_n. exact H1. apply H2 in H4. destruct H4 as [w [n [m H4]]].
-  exists w, n, m. exact H4.
-Qed.
+Proof. intros u v H. exact (fine_wilf_aux (|u| + |v|) u v (conj (le_n (|u| + |v|)) H)). Qed.
 
 End Fine_Wilf.
