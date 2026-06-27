@@ -1,18 +1,18 @@
 (* This one file contains the whole documented proof. It is divided
-into four different sections, each with their name and description. 
+into four different sections, each with their name and description.
 
-You do not need to install any external Rocq libraries.
+You do not need to install any external Rocq library.
 
-Furthermore we shall assume the lemmas below, provided by Rocq,
+We shall assume the lemmas below, provided by Rocq,
 are already proven:
 - eq_S
 - plus_Sn_m
-- plus_n_Sm 
+- plus_n_Sm
 - le_S_n
-- le_n_S 
+- le_n_S
 
-And before reading the proofs documentation, it is highly recommended to
-fully understand Rocq's definition of <, >, <= and >=. 
+Before reading the proof documentation, it is highly recommended to
+fully understand Rocqs definition of <, >, <= and >=.
 *)
 
 Print le. Print lt. Print ge. Print gt.
@@ -71,12 +71,12 @@ Lemma plus_comm : forall (m n : nat), m + n = n + m.
 Proof. induction m as [| m' IHm']; intro n; [rewrite add_0_r | rewrite plus_Sn_m, <- plus_n_Sm, IHm']; reflexivity. Qed.
 
 Lemma zero_split : forall (m n : nat), m + n = 0 -> m = 0 /\ n = 0.
-Proof. 
+Proof.
   intros [| m'] n H.
   - split; [reflexivity | exact H].
-  - inversion H. 
-(* [inversion H] : Rocq evaluates S m' + n to S (m' + n) thanks to [+]
-definition. It then sees that each side of the equality was made with a
+  - inversion H.
+(* [inversion H] : Rocq evaluates S m' + n to S (m' + n) by the definition
+of [+]. It then sees that each side of the equality was made with a
 different nat constructor. Since constructors are by definition mutually
 disjoint, these two elements cannot be equal. The hypothesis H is therefore
 equivalent to False. [inversion H] detects this contradiction and automatically
@@ -109,7 +109,7 @@ Proof. intros m n o [H1 H2]. induction H2; [| apply le_S]; assumption. Qed.
 
 Lemma remove_S_keep_o_n : forall (m n o k : nat),
   m + n <= S k /\ o < m -> o + n <= k.
-Proof. 
+Proof.
   intros m n o k [H1 H2].
   apply le_S_n, (lt_le_trans _ (n + m) _).
   rewrite (plus_comm n m).
@@ -118,7 +118,7 @@ Qed.
 
 Lemma remove_S_keep_m_o : forall (m n o k : nat),
   m + n <= S k /\ o < n -> m + o <= k.
-Proof. 
+Proof.
   intros m n o k [H1 H2].
   rewrite plus_comm.
   apply le_S_n, (lt_le_trans _ (n + m) _).
@@ -126,8 +126,8 @@ Proof.
 Qed.
 
 Lemma le_disjunction : forall (m n : nat), m <= n -> m = n \/ m < n.
-Proof. intros m n H. destruct H; [left; reflexivity | right; apply le_n_S; assumption]. Qed. 
-  
+Proof. intros m n H. destruct H; [left; reflexivity | right; apply le_n_S; assumption]. Qed.
+
 Lemma cases_int : forall (m n : nat), m = n \/ m > n \/ m < n.
 Proof.
   intros m n. induction m as [| m' IHm'].
@@ -140,7 +140,7 @@ Qed.
 
 End Arithmetics.
 
-(* This section contains basic lemmas used in Combinatorics of 
+(* This section contains basic lemmas used in Combinatorics of
 Words *)
 Section Combinatorics.
 
@@ -172,7 +172,7 @@ Proof.
 Qed.
 
 Lemma pref_cut : forall (u v : word),
-  |u| > |v| /\ |v| > 0 /\ prefix (|v|) u = v -> 
+  |u| > |v| /\ |v| > 0 /\ prefix (|v|) u = v ->
   exists (w : word), |w| < |u| /\ u = v ++ w.
 Proof.
   intros u v; revert u; induction v as [| x2 v' IHv'].
@@ -194,7 +194,7 @@ Proof.
       subst x2; simpl; destruct (empty_or_larger v').
       * rewrite H; exists u'; split; [apply succ_pos_strict | reflexivity].
       * assert (H7 : |u'| > |v'| /\ |v'| > 0 /\ prefix (|v'|) u' = v') by (repeat split; [simpl in H1; apply sup_succ_strict in H1 | | ]; assumption).
-        destruct (IHv' u' H7) as [w [H8 H9]]; apply lt_S in H8. 
+        destruct (IHv' u' H7) as [w [H8 H9]]; apply lt_S in H8.
         exists w; split; [| f_equal]; assumption.
 Qed.
 
@@ -226,10 +226,10 @@ Proof.
   - intros v w1 w2 H1 H2; symmetry in H1 |- *; exact (len_0 _ H1).
   - intros [| x2 v'] w1 w2 H1 H2.
     + inversion H1.
-      (* [inversion H1] : Rocq evaluates |x1 :: u'| to S |u'| then |epsilon| to 0. 
+      (* [inversion H1] : Rocq evaluates |x1 :: u'| to S |u'| then |epsilon| to 0.
       Since zero cannot be the successor of any nat, the proof is concluded.  *)
 
-    + injection H1 as H3; injection H2 as H4 H5; subst x2; f_equal; exact (IHu' _ _ _ H3 H5). 
+    + injection H1 as H3; injection H2 as H4 H5; subst x2; f_equal; exact (IHu' _ _ _ H3 H5).
 Qed.
 
 Lemma case_egal1 : forall (u v : word) (x : letter),
@@ -237,7 +237,7 @@ Lemma case_egal1 : forall (u v : word) (x : letter),
   u ++ (x :: v) = v ++ (x :: u) ->
   u ++ v = v ++ u.
 Proof. intros u v x H1 H2; rewrite (case_egal1_generalized _ _ _ _ H1 H2); reflexivity. Qed.
- 
+
 Lemma case_egal : forall (u v : word),
   (|u| = |v| /\ u ++ v = v ++ u) -> u = v.
 Proof.
@@ -254,7 +254,7 @@ we first need to prove an auxiliary version of it, using a given natural
 number k as the maximum sum of lengths of the words. We will then proceed
 to do an induction on this number k. *)
 Lemma fine_wilf_aux : forall (k : nat) (u v : word),
-  (|u| + |v| <= k) /\ u ++ v = v ++ u -> 
+  (|u| + |v| <= k) /\ u ++ v = v ++ u ->
   exists (w : word) (n m : nat), u = w^m /\ v = w^n.
 Proof.
   induction k as [| k' IHk'].
@@ -267,7 +267,7 @@ Proof.
      discards the first branch and keeps the second one. *)
 
   (* For the inductive case we need to proceed by cases on the parity of
-  |u| - |v|, hence the use of [three_cases]. *)  
+  |u| - |v|, hence the use of [three_cases]. *)
   - intros u v; destruct (three_cases u v) as [HCASE_1 | [HCASE_2 | HCASE_3]]; intros [H1 H2].
 
     (* For case |u| = |v|, we just use [case_egal]. *)
@@ -284,7 +284,7 @@ Proof.
         rewrite H2, pref_first_word in H4; symmetry in H4.
         destruct (pref_cut _ _ (conj HCASE_2 (conj H3 H4))) as [u' [H5 H6]].
         clear HCASE_2 H3 H4.
-        
+
         (* Then we show [v] and [u'] do commute. *)
         rewrite H6, <- conc_assoc in H2; apply conc_egal_2 in H2.
 
@@ -296,7 +296,7 @@ Proof.
         rewrite H8, H9, conc_pow in H6.
         exists w, n, (n + m); split; assumption.
 
-    (* For this third and last case |u| < |v|, the reasoning is pretty much the 
+    (* For this third and last case |u| < |v|, the reasoning is pretty much the
     same as the second case, except we have to be careful on how [v] is constructed
     with [u] and [v']. *)
     + destruct (empty_or_larger u) as [H3 | H3].
@@ -305,7 +305,7 @@ Proof.
         rewrite <- H2, pref_first_word in H4; symmetry in H4.
         destruct (pref_cut _ _ (conj HCASE_3 (conj H3 H4))) as [v' [H5 H6]].
         clear HCASE_3 H3 H4.
-        
+
         rewrite H6, <- conc_assoc in H2; apply conc_egal_2 in H2.
 
         pose proof (remove_S_keep_m_o (|u|) (|v|) (|v'|) k' (conj H1 H5)) as H7.
