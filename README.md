@@ -28,4 +28,5 @@ $$
 ## Project Structure
 -   [./theory.md](./theory.md) : Mathematical proof of the Commutation Lemma.
 -   [./assignment.md](./assignment.md) : Definitions and lemmas given by our professor.
--   [./proof_documented](./proof_documented.v) : Formal proof with documentation.
+-   [./proof.v](./proof.v) : Formal proof.
+-   [./proof_documented.v](./proof_documented.v) : Formal proof with documentation.
