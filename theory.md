@@ -44,6 +44,6 @@ $$
 
 Finally, since $u'v=vu'$ and $\left|u'\right| + \left|v\right| \leqslant k$, the $IH$ applied to $u'$ and $v$ implies that there exists $w \in \Sigma^*$ and $n,m \in \mathbb{N}$ such that $u'=w^n$ and $v=w^m$. Therefore, since $u=vu'$, $u=w^m.w^n=w^{m+n}$ which concludes the proof for this case.
 
-**Case 3:** If $\left|u\right| \lt \left|v\right|$ and $uv=vu$, then we can use the method as stated in _Case 2_ symmetrically, by choosing $v=v'u$.
+**Case 3:** If $\left|u\right| \lt \left|v\right|$ and $uv=vu$, then we can use the method as stated in _Case 2_ symmetrically, by choosing $v=uv'$.
 
 By the principle of mathematical induction, the statement holds for all $k \ge 0. \qquad \square$
