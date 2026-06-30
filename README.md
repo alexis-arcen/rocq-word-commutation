@@ -1,7 +1,7 @@
 # Proof of the Commutation Lemma in Rocq
 
 ## Introduction
-The purpose of this project is to prove the Commutation Lemma in Combinatorics on words, which is a corollary of the Fine-Wilf theorem. This lemma states that if two words over a finite alphabet commute, then they share a common root. Formally:
+The purpose of this university project is to prove the Commutation Lemma (Lyndon and Schützenberger) in Combinatorics on words, which is a corollary of the Fine-Wilf theorem. This lemma states that if two words over a finite alphabet commute, then they share a common root. Formally:
 
 Let $\Sigma$ be a finite alphabet. 
 
@@ -17,11 +17,6 @@ u = w^n
 \text{ and }
 v = w^m.
 $$
-
-> [!NOTE]
-> The Commutation Lemma is a specific case of the Fine-Wilf Theorem, which is
-> often viewed as a "strong" version of the Periodicity Lemma. It states that if a word
-> $w$ has $p$ and $q$ as periods and $\left| w \right| \geqslant p+q - gdc(p,q)$, then $gdc(p,q)$ is a period of $w$.
 
 ## Project Structure
 -   [./theory.md](./theory.md) : Mathematical proof of the Commutation Lemma.
