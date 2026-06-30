@@ -19,7 +19,7 @@ v = w^m.
 $$
 
 ## Project Structure
--   [./theory.md](./theory.md) : Mathematical proof of the Commutation Lemma.
+-   [./theory.md](./theory.md) : Mathematical proof.
 -   [./assignment.v](./assignment.v) : Definitions and lemmas given by our professor.
 -   [./proof.v](./proof.v) : Formal proof.
 -   [./proof_documented.v](./proof_documented.v) : Formal proof with documentation.
